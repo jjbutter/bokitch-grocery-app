@@ -1,0 +1,1759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Bokitch Grocery">
+<meta name="theme-color" content="#1a7a4a">
+<link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgcng9IjE4IiBmaWxsPSIjMWE3YTRhIi8+PHRleHQgeD0iNTAiIHk9IjY3IiBmb250LXNpemU9IjU1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7wn5uSPC90ZXh0Pjwvc3ZnPg==">
+<title>Bokitch Grocery</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  :root{
+    --green:#1a7a4a; --green-dk:#145a36; --green-lt:#e8f5ed;
+    --gold:#b8860b; --gold-lt:#fef9e7;
+    --blue:#4a90a4; --blue-lt:#e8f0f3;
+    --bg:#f5f5f5; --card:#fff; --text:#2c3e50; --muted:#7f8c8d;
+    --border:#e0e0e0; --line:#f0f0f0;
+    --red:#c0392b; --red-lt:#fdedec;
+  }
+  html,body{height:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:var(--bg); color:var(--text);
+    -webkit-user-select:none; user-select:none;
+    overscroll-behavior:contain;
+  }
+  body.locked{overflow:hidden}
+  input,textarea{font-family:inherit; -webkit-user-select:text; user-select:text}
+  button{font-family:inherit; cursor:pointer; border:none; background:none}
+
+  /* ─── LOGIN ─── */
+  #loginView{
+    min-height:100vh; min-height:100dvh;
+    background:linear-gradient(135deg,#1a7a4a 0%,#0e4a2b 100%);
+    display:flex; align-items:center; justify-content:center;
+    padding:24px; color:#fff;
+  }
+  .login-card{
+    width:100%; max-width:380px; background:#fff; color:var(--text);
+    border-radius:20px; padding:32px 24px;
+    box-shadow:0 12px 40px rgba(0,0,0,0.25);
+  }
+  .login-title{
+    font-size:26px; font-weight:800; color:var(--green);
+    text-align:center; margin-bottom:6px;
+  }
+  .login-sub{font-size:13px; color:var(--muted); text-align:center; margin-bottom:24px}
+  .user-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:18px}
+  .user-btn{
+    padding:16px 12px; background:var(--green-lt); border:2px solid transparent;
+    border-radius:12px; font-size:15px; font-weight:600; color:var(--green);
+    transition:all .15s;
+  }
+  .user-btn.active{background:var(--green); color:#fff; border-color:var(--green-dk)}
+  .pin-display{
+    display:flex; gap:10px; justify-content:center; margin:18px 0;
+  }
+  .pin-dot{
+    width:14px; height:14px; border-radius:50%;
+    background:var(--border); transition:background .15s;
+  }
+  .pin-dot.filled{background:var(--green)}
+  .pin-pad{display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px}
+  .pin-key{
+    padding:18px 0; background:var(--bg); border-radius:12px;
+    font-size:22px; font-weight:600; color:var(--text);
+  }
+  .pin-key:active{background:var(--green-lt)}
+  .pin-key.del{background:#fde8e6; color:var(--red); font-size:16px}
+  .login-error{
+    color:var(--red); font-size:13px; text-align:center; margin-top:12px;
+    min-height:18px;
+  }
+
+  /* ─── APP SHELL ─── */
+  #appView{display:none}
+  body.logged-in #loginView{display:none}
+  body.logged-in #appView{display:block}
+
+  .top-bar{
+    background:linear-gradient(135deg,var(--green) 0%,var(--green-dk) 100%);
+    color:#fff; padding:14px 16px;
+    position:sticky; top:0; z-index:100;
+    box-shadow:0 2px 10px rgba(0,0,0,0.15);
+    padding-top:max(14px,env(safe-area-inset-top));
+  }
+  .top-row{display:flex; justify-content:space-between; align-items:center; gap:12px}
+  .top-title{font-size:18px; font-weight:700; line-height:1}
+  .top-sub{font-size:11px; opacity:.85; margin-top:3px}
+  .top-actions{display:flex; gap:8px; align-items:center}
+  .icon-btn{
+    width:38px; height:38px; border-radius:10px;
+    background:rgba(255,255,255,.15); color:#fff; font-size:18px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .icon-btn:active{background:rgba(255,255,255,.3)}
+
+  .store-tabs{
+    display:grid; grid-template-columns:1fr 1fr;
+    background:rgba(255,255,255,.1); border-radius:10px;
+    padding:3px; margin-top:12px;
+  }
+  .store-tab{
+    padding:10px; text-align:center; font-size:14px; font-weight:600;
+    color:rgba(255,255,255,.7); border-radius:8px; transition:all .2s;
+  }
+  .store-tab.active{background:#fff; color:var(--green)}
+
+  .view-tabs{
+    display:flex; gap:6px; padding:10px 12px; background:#fff;
+    border-bottom:1px solid var(--border); overflow-x:auto;
+    position:sticky; top:0; z-index:99;
+  }
+  .view-tab{
+    padding:8px 14px; font-size:13px; font-weight:600;
+    background:var(--bg); color:var(--muted); border-radius:18px;
+    white-space:nowrap; flex-shrink:0;
+  }
+  .view-tab.active{background:var(--green); color:#fff}
+  .view-tab .badge{
+    display:inline-block; margin-left:5px; background:rgba(255,255,255,.3);
+    padding:1px 6px; border-radius:8px; font-size:11px;
+  }
+  .view-tab:not(.active) .badge{background:#ddd; color:#666}
+
+  .search-bar{
+    padding:10px 12px; background:#fff; border-bottom:1px solid var(--border);
+  }
+  .search-input{
+    width:100%; padding:10px 14px; border:1px solid var(--border);
+    border-radius:10px; font-size:14px; background:var(--bg);
+  }
+  .search-input:focus{outline:none; border-color:var(--green); background:#fff}
+
+  /* ─── SECTIONS / ITEMS ─── */
+  .sections-container{padding:8px 0 100px}
+  .section{
+    background:var(--card); margin:8px 12px; border-radius:12px;
+    overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,0.06);
+  }
+  .section-header{
+    padding:14px 16px; background:var(--green-lt);
+    border-left:4px solid var(--green); display:flex;
+    justify-content:space-between; align-items:center; cursor:pointer;
+  }
+  .section-title{font-weight:700; font-size:14px; color:var(--green-dk)}
+  .section-meta{display:flex; align-items:center; gap:10px}
+  .section-count{font-size:11px; color:var(--muted); font-weight:600}
+  .section-count .needed{color:var(--green); font-weight:700}
+  .section-toggle{font-size:14px; color:var(--green); transition:transform .2s}
+  .section.collapsed .section-toggle{transform:rotate(-90deg)}
+  .section-body{display:block}
+  .section.collapsed .section-body{display:none}
+
+  .item{
+    display:flex; align-items:center; padding:13px 16px;
+    border-top:1px solid var(--line); gap:12px; min-height:54px;
+  }
+  .item.dim{opacity:.5}
+  .item-checkbox{
+    width:26px; height:26px; flex-shrink:0;
+    border:2px solid #ccc; border-radius:7px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:16px; color:#fff; font-weight:700; transition:all .15s;
+  }
+  .item-checkbox.needed{background:var(--green); border-color:var(--green)}
+  .item-checkbox.needed::after{content:"✓"}
+  .item-checkbox.gotit{background:var(--gold); border-color:var(--gold)}
+  .item-checkbox.gotit::after{content:"✓"}
+  .item-content{flex:1; min-width:0}
+  .item-name{font-size:15px; font-weight:500; color:var(--text)}
+  .item.gotit .item-name{text-decoration:line-through; color:var(--muted)}
+  .item-notes{font-size:12px; color:var(--muted); font-style:italic; margin-top:2px}
+  .item-tags{display:flex; gap:5px; margin-top:5px; flex-wrap:wrap}
+  .tag{
+    font-size:10px; font-weight:700; padding:2px 7px; border-radius:6px;
+    text-transform:uppercase; letter-spacing:.4px;
+  }
+  .tag-pantry{background:var(--green-lt); color:var(--green-dk)}
+  .tag-garage{background:var(--blue-lt); color:var(--blue)}
+  .tag-recur{background:var(--gold-lt); color:var(--gold)}
+  .item-actions{
+    width:32px; height:32px; flex-shrink:0; display:flex;
+    align-items:center; justify-content:center; color:var(--muted);
+    font-size:18px; border-radius:8px;
+  }
+  .item-actions:active{background:var(--bg)}
+
+  /* ─── BOTTOM BAR ─── */
+  .bottom-bar{
+    position:fixed; bottom:0; left:0; right:0;
+    background:#fff; border-top:1px solid var(--border);
+    padding:10px 12px; padding-bottom:max(10px,env(safe-area-inset-bottom));
+    display:flex; gap:8px; z-index:90;
+    box-shadow:0 -2px 12px rgba(0,0,0,0.05);
+  }
+  .bb-btn{
+    flex:1; padding:13px 0; border-radius:10px; font-size:13px;
+    font-weight:700; text-align:center; transition:transform .1s;
+  }
+  .bb-btn:active{transform:scale(.95)}
+  .bb-primary{background:var(--green); color:#fff}
+  .bb-outline{background:#fff; color:var(--text); border:1.5px solid var(--border)}
+
+  /* ─── MODAL ─── */
+  .modal-backdrop{
+    position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:200;
+    display:flex; align-items:flex-end; justify-content:center;
+    padding:0; opacity:0; pointer-events:none; transition:opacity .2s;
+  }
+  .modal-backdrop.show{opacity:1; pointer-events:auto}
+  .modal{
+    background:#fff; width:100%; max-width:520px;
+    border-radius:20px 20px 0 0; padding:20px 18px;
+    padding-bottom:max(20px,env(safe-area-inset-bottom));
+    transform:translateY(100%); transition:transform .25s;
+    max-height:85vh; overflow-y:auto;
+  }
+  .modal-backdrop.show .modal{transform:translateY(0)}
+  .modal-handle{
+    width:40px; height:4px; background:var(--border); border-radius:2px;
+    margin:0 auto 18px;
+  }
+  .modal-title{font-size:18px; font-weight:700; margin-bottom:14px}
+  .modal-close{position:absolute; top:14px; right:14px; font-size:24px; color:var(--muted)}
+  .modal-section{margin-bottom:14px}
+  .modal-label{font-size:12px; font-weight:600; color:var(--muted); margin-bottom:6px; text-transform:uppercase; letter-spacing:.5px}
+  .modal-input{
+    width:100%; padding:12px; border:1.5px solid var(--border);
+    border-radius:10px; font-size:15px; background:var(--bg);
+  }
+  .modal-input:focus{outline:none; border-color:var(--green); background:#fff}
+  .modal-row{display:flex; gap:8px}
+  .modal-row .modal-input{flex:1}
+  .modal-btn{
+    width:100%; padding:14px; border-radius:10px; font-size:15px;
+    font-weight:700; margin-top:8px;
+  }
+  .modal-btn-primary{background:var(--green); color:#fff}
+  .modal-btn-secondary{background:var(--bg); color:var(--text)}
+  .modal-btn-danger{background:var(--red); color:#fff}
+
+  .toggle-row{
+    display:flex; gap:8px; padding:10px; background:var(--bg);
+    border-radius:10px; margin-bottom:10px;
+  }
+  .toggle-btn{
+    flex:1; padding:10px; border-radius:8px; font-size:13px;
+    font-weight:600; background:transparent; color:var(--muted);
+  }
+  .toggle-btn.active{background:#fff; color:var(--green); box-shadow:0 1px 3px rgba(0,0,0,.1)}
+
+  .picker-grid{
+    display:grid; grid-template-columns:1fr; gap:6px; max-height:280px; overflow-y:auto;
+  }
+  .picker-item{
+    padding:12px 14px; background:var(--bg); border-radius:8px;
+    font-size:14px; text-align:left; color:var(--text);
+  }
+  .picker-item.selected{background:var(--green-lt); color:var(--green-dk); font-weight:600}
+
+  /* ─── HISTORY VIEW ─── */
+  .history-card{
+    background:#fff; margin:10px 12px; border-radius:12px; padding:14px 16px;
+    box-shadow:0 1px 4px rgba(0,0,0,0.06);
+  }
+  .history-row{display:flex; justify-content:space-between; align-items:center; margin-bottom:6px}
+  .history-store{font-weight:700; font-size:15px; color:var(--green)}
+  .history-store.sobeys{color:var(--red)}
+  .history-date{font-size:12px; color:var(--muted)}
+  .history-total{font-size:18px; font-weight:800; color:var(--text)}
+  .history-stats{font-size:12px; color:var(--muted); margin-top:4px}
+  .history-actions{display:flex; gap:8px; margin-top:10px}
+  .history-btn{
+    flex:1; padding:8px; border-radius:8px; font-size:12px;
+    font-weight:600; background:var(--bg); color:var(--text);
+  }
+
+  /* ─── EMPTY STATES ─── */
+  .empty{
+    text-align:center; padding:60px 20px; color:var(--muted);
+  }
+  .empty-emoji{font-size:48px; margin-bottom:10px}
+  .empty-title{font-size:16px; font-weight:600; color:var(--text); margin-bottom:4px}
+  .empty-sub{font-size:13px}
+
+  /* ─── TOAST ─── */
+  .toast{
+    position:fixed; bottom:90px; left:50%; transform:translateX(-50%);
+    background:#333; color:#fff; padding:12px 18px; border-radius:24px;
+    font-size:14px; font-weight:500; z-index:300;
+    opacity:0; transition:opacity .25s; pointer-events:none;
+    max-width:90%;
+  }
+  .toast.show{opacity:1}
+  .toast.error{background:var(--red)}
+  .toast.success{background:var(--green)}
+
+  /* ─── BANNER ─── */
+  .banner{
+    background:#fff3cd; border-bottom:1px solid #ffeaa7;
+    padding:10px 16px; font-size:13px; color:#856404;
+    display:flex; gap:8px; align-items:center;
+  }
+  .banner.error{background:var(--red-lt); border-color:#fadbd8; color:var(--red)}
+
+  /* ─── HEADER (CUSTOMIZE / HISTORY / GARAGE) ─── */
+  .sub-header{
+    background:#fff; padding:14px 16px;
+    border-bottom:1px solid var(--border); display:flex;
+    align-items:center; gap:12px; position:sticky; top:0; z-index:99;
+  }
+  .back-btn{
+    width:36px; height:36px; border-radius:10px;
+    background:var(--bg); display:flex; align-items:center;
+    justify-content:center; font-size:18px;
+  }
+  .sub-header-title{font-size:17px; font-weight:700; color:var(--text)}
+
+  /* hide everything not currently active */
+  .view{display:none}
+  .view.active{display:block}
+</style>
+</head>
+<body>
+
+<!-- ================= LOGIN VIEW ================= -->
+<div id="loginView" class="view active">
+  <div class="login-card">
+    <div class="login-title">🛒 Bokitch Grocery</div>
+    <div class="login-sub">Pick your name, enter your PIN</div>
+    <div class="user-grid" id="userGrid"></div>
+    <div class="pin-display" id="pinDisplay"></div>
+    <div class="pin-pad" id="pinPad"></div>
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
+
+<!-- ================= APP VIEW ================= -->
+<div id="appView">
+
+  <!-- MAIN VIEW -->
+  <div id="mainView" class="view active">
+    <div class="top-bar">
+      <div class="top-row">
+        <div>
+          <div class="top-title">🛒 Bokitch Grocery</div>
+          <div class="top-sub" id="topSub">Loading...</div>
+        </div>
+        <div class="top-actions">
+          <button class="icon-btn" id="btnHistory" title="History">📋</button>
+          <button class="icon-btn" id="btnGarage" title="Garage Fridge">🏠</button>
+          <button class="icon-btn" id="btnCustomize" title="Customize">⚙️</button>
+          <button class="icon-btn" id="btnLogout" title="Logout">🚪</button>
+        </div>
+      </div>
+      <div class="store-tabs">
+        <div class="store-tab active" data-store="costco">Costco</div>
+        <div class="store-tab" data-store="sobeys">Sobeys / Safeway</div>
+      </div>
+    </div>
+
+    <div class="view-tabs">
+      <button class="view-tab active" data-filter="needed">Needed <span class="badge" id="cntNeeded">0</span></button>
+      <button class="view-tab" data-filter="all">All Items</button>
+      <button class="view-tab" data-filter="pantry">Pantry <span class="badge" id="cntPantry">0</span></button>
+    </div>
+
+    <div class="search-bar">
+      <input type="text" class="search-input" id="searchInput" placeholder="Search items...">
+    </div>
+
+    <div id="banner-area"></div>
+
+    <div class="sections-container" id="sectionsContainer"></div>
+
+    <div class="bottom-bar">
+      <button class="bb-btn bb-outline" id="btnAddItem">+ Add Item</button>
+      <button class="bb-btn bb-primary" id="btnCompleteShop">Complete Shop</button>
+    </div>
+  </div>
+
+  <!-- GARAGE FRIDGE VIEW -->
+  <div id="garageView" class="view">
+    <div class="sub-header">
+      <button class="back-btn" data-nav="main">←</button>
+      <div class="sub-header-title">🏠 Garage Fridge</div>
+    </div>
+    <div class="sections-container" id="garageContainer"></div>
+  </div>
+
+  <!-- CUSTOMIZE VIEW -->
+  <div id="customizeView" class="view">
+    <div class="sub-header">
+      <button class="back-btn" data-nav="main">←</button>
+      <div class="sub-header-title">⚙️ Customize Items</div>
+    </div>
+    <div class="search-bar">
+      <input type="text" class="search-input" id="customSearch" placeholder="Search to find items...">
+    </div>
+    <div class="sections-container" id="customizeContainer"></div>
+  </div>
+
+  <!-- HISTORY VIEW -->
+  <div id="historyView" class="view">
+    <div class="sub-header">
+      <button class="back-btn" data-nav="main">←</button>
+      <div class="sub-header-title">📋 Shop History</div>
+    </div>
+    <div id="historyContainer"></div>
+  </div>
+
+</div>
+
+<!-- ================= MODALS ================= -->
+
+<!-- Item action modal -->
+<div class="modal-backdrop" id="itemModal" data-modal>
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="itemModalTitle">Item</div>
+    <div class="modal-section">
+      <div class="modal-label">Status</div>
+      <div class="toggle-row" id="itemStatusToggles"></div>
+    </div>
+    <div class="modal-section">
+      <div class="modal-label">Available at</div>
+      <div class="toggle-row">
+        <button class="toggle-btn" data-store-toggle="costco">Costco</button>
+        <button class="toggle-btn" data-store-toggle="sobeys">Sobeys</button>
+      </div>
+    </div>
+    <button class="modal-btn modal-btn-secondary" id="btnEditItem">Edit name / notes</button>
+    <button class="modal-btn modal-btn-danger" id="btnHideItem">Hide from list</button>
+    <button class="modal-btn modal-btn-secondary" id="btnCloseItemModal">Done</button>
+  </div>
+</div>
+
+<!-- Add / Edit item modal -->
+<div class="modal-backdrop" id="addModal" data-modal>
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="addModalTitle">Add New Item</div>
+    <div class="modal-section">
+      <div class="modal-label">Item name *</div>
+      <input class="modal-input" id="addName" placeholder="e.g. Pickles">
+    </div>
+    <div class="modal-section">
+      <div class="modal-label">Notes (optional)</div>
+      <input class="modal-input" id="addNotes" placeholder="e.g. Bick's Dills">
+    </div>
+    <div class="modal-section">
+      <div class="modal-label">Costco section</div>
+      <select class="modal-input" id="addCostcoSection"></select>
+    </div>
+    <div class="modal-section">
+      <div class="modal-label">Sobeys section</div>
+      <select class="modal-input" id="addSobeysSection"></select>
+    </div>
+    <button class="modal-btn modal-btn-primary" id="btnSaveAdd">Save</button>
+    <button class="modal-btn modal-btn-secondary" id="btnCancelAdd">Cancel</button>
+  </div>
+</div>
+
+<!-- Complete shop modal -->
+<div class="modal-backdrop" id="completeModal" data-modal>
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Complete Shop</div>
+    <div class="modal-section">
+      <div class="modal-label">Store</div>
+      <div class="toggle-row" id="completeStoreToggle">
+        <button class="toggle-btn active" data-cstore="costco">Costco</button>
+        <button class="toggle-btn" data-cstore="sobeys">Sobeys / Safeway</button>
+      </div>
+    </div>
+    <div class="modal-section">
+      <div class="modal-label">Total cost ($)</div>
+      <input class="modal-input" id="completeCost" type="number" inputmode="decimal" placeholder="0.00">
+    </div>
+    <div class="modal-section">
+      <div class="modal-label" id="completeSummaryLabel">Summary</div>
+      <div id="completeSummary" style="font-size:13px;color:var(--muted);line-height:1.6"></div>
+    </div>
+    <div class="modal-section">
+      <div class="modal-label">Where do bought items go?</div>
+      <div class="toggle-row">
+        <button class="toggle-btn active" data-where="pantry">Pantry</button>
+        <button class="toggle-btn" data-where="garage">Garage Fridge</button>
+        <button class="toggle-btn" data-where="ask">Ask each</button>
+      </div>
+    </div>
+    <button class="modal-btn modal-btn-primary" id="btnConfirmComplete">Save Shop & Reset</button>
+    <button class="modal-btn modal-btn-secondary" id="btnCancelComplete">Cancel</button>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- ================= MAIN SCRIPT ================= -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import {
+  getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc,
+  deleteDoc, addDoc, onSnapshot, serverTimestamp, query, orderBy, where,
+  writeBatch, runTransaction
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+/* ─────────── FIREBASE CONFIG ─────────── */
+const firebaseConfig = {
+  apiKey: "AIzaSyDjk-pZ59EkiCHu9oHyKKWiiZXAk39ekPw",
+  authDomain: "bokitch-grocery-c6a84.firebaseapp.com",
+  projectId: "bokitch-grocery-c6a84",
+  storageBucket: "bokitch-grocery-c6a84.firebasestorage.app",
+  messagingSenderId: "238838928489",
+  appId: "1:238838928489:web:2d6b0a10708d8211fe3ef8"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+/* ─────────── USERS ─────────── */
+const USERS = {
+  jereme: { pin: "6420", display: "Jereme" },
+  wray:   { pin: "2249", display: "Wray" },
+  alex:   { pin: "4700", display: "Alex" },
+  scout:  { pin: "5643", display: "Scout" }
+};
+
+/* ─────────── SECTIONS ─────────── */
+const COSTCO_SECTIONS = [
+  ["bakery_breads",        "🍞 Bakery & Bread"],
+  ["produce",              "🥦 Produce"],
+  ["raw_meat_deli",        "🥩 Meat, Cheese & Deli"],
+  ["packaged_refrigerated","🥣 Packaged Refrigerated"],
+  ["eggs_milk",            "🥚 Eggs & Milk"],
+  ["yogurt_butter",        "🧈 Yogurt & Butter"],
+  ["paper",                "🧻 Paper Goods"],
+  ["drinks",               "🧃 Drinks"],
+  ["cleaning",             "🧴 Cleaning"],
+  ["dish_laundry",         "🧼 Dish & Laundry"],
+  ["frozen_meat",          "🥶 Frozen Meat"],
+  ["frozen_fish",          "🐟 Frozen Fish"],
+  ["frozen_meals",         "🍕 Frozen Meals & Pizza"],
+  ["frozen_veg",           "🧊 Frozen Vegetables"],
+  ["snacks",               "🥨 Snacks"],
+  ["health",               "💊 Health & Supplements"],
+  ["spices",               "🌿 Spices & Baking"],
+  ["condiments_canned",    "🥫 Condiments & Canned"],
+  ["pasta_noodles",        "🍝 Pasta & Noodles"],
+  ["crackers",             "🥖 Crackers & Cereal"],
+];
+const SOBEYS_SECTIONS = [
+  ["produce",              "🥦 Produce"],
+  ["deli_meat",            "🥩 Deli, Meat & Cheese"],
+  ["organic",              "🌱 Organic"],
+  ["pasta_rice",           "🍝 Pasta, Rice & Noodles"],
+  ["canned",               "🥫 Canned Goods"],
+  ["condiments",           "🍯 Condiments & Sauces"],
+  ["spices_baking",        "🌿 Spices & Baking"],
+  ["snacks",               "🥨 Snacks"],
+  ["drinks",               "🧃 Drinks"],
+  ["health",               "💊 Health & Supplements"],
+  ["paper",                "🧻 Paper Goods"],
+  ["cleaning_dish_laundry","🧼 Cleaning, Dish & Laundry"],
+  ["dairy",                "🥛 Dairy"],
+  ["frozen_meat_fish",     "🐟 Frozen Meat & Fish"],
+  ["frozen_meals",         "🍕 Frozen Meals & Pizza"],
+  ["frozen_veg",           "🧊 Frozen Vegetables"],
+  ["bakery_bread",         "🍞 Bakery & Bread"],
+];
+
+/* ─────────── SEED ITEMS ─────────── */
+/* Each: name, notes, costco section key, sobeys section key */
+const SEED_ITEMS = [
+  // Bakery / Bread
+  ["Sourdough Bread", "", "bakery_breads", "bakery_bread"],
+  ["Whole Grain Bread", "Sliced loaf", "bakery_breads", "bakery_bread"],
+  ["White Sliced Bread", "For sandwiches", "bakery_breads", "bakery_bread"],
+  ["Bagels", "", "bakery_breads", "bakery_bread"],
+  ["English Muffins", "", "bakery_breads", "bakery_bread"],
+  ["Croissants", "", "bakery_breads", "bakery_bread"],
+  ["Tortillas", "Regular flour, family size", "bakery_breads", "bakery_bread"],
+  ["Low-Carb Tortillas", "Mission Carb Balance", "bakery_breads", "bakery_bread"],
+  ["Pita Bread", "", "bakery_breads", "bakery_bread"],
+  ["Pizza Dough", "Frozen ball", "bakery_breads", "bakery_bread"],
+
+  // Produce
+  ["Spinach / Baby Kale", "Pre-washed bag", "produce", "produce"],
+  ["Broccoli", "Fresh crowns", "produce", "produce"],
+  ["Cauliflower", "Fresh head", "produce", "produce"],
+  ["Brussels Sprouts", "Fresh", "produce", "produce"],
+  ["Bell Peppers", "Assorted, 4 pack", "produce", "produce"],
+  ["Sweet Peppers", "Mini sweet, bag", "produce", "produce"],
+  ["Zucchini", "", "produce", "produce"],
+  ["Mushrooms", "White or cremini", "produce", "produce"],
+  ["Cherry Tomatoes", "Grape or cherry", "produce", "produce"],
+  ["Roma Tomatoes", "", "produce", "produce"],
+  ["Cucumbers", "English", "produce", "produce"],
+  ["Celery", "Bunch", "produce", "produce"],
+  ["Mixed Greens / Salad Kit", "", "produce", "produce"],
+  ["Romaine Hearts", "", "produce", "produce"],
+  ["Avocados", "Bag of 4-6", "produce", "produce"],
+  ["Garlic", "Whole bulbs", "produce", "produce"],
+  ["Yellow Onions", "3 kg bag", "produce", "produce"],
+  ["Red Onions", "", "produce", "produce"],
+  ["Green Onions", "Bunch", "produce", "produce"],
+  ["Fresh Basil", "", "produce", "produce"],
+  ["Fresh Cilantro", "", "produce", "produce"],
+  ["Fresh Parsley", "", "produce", "produce"],
+  ["Fresh Ginger", "", "produce", "produce"],
+  ["Carrots", "Bag", "produce", "produce"],
+  ["Baby Carrots", "Snack bag", "produce", "produce"],
+  ["Asparagus", "Fresh bunch", "produce", "produce"],
+  ["Green Beans", "Fresh", "produce", "produce"],
+  ["Sweet Potatoes", "", "produce", "produce"],
+  ["Russet Potatoes", "Bag", "produce", "produce"],
+  ["Lemons", "Bag", "produce", "produce"],
+  ["Limes", "Bag", "produce", "produce"],
+  ["Bananas", "Bunch", "produce", "produce"],
+  ["Apples", "Gala / Fuji / Honeycrisp", "produce", "produce"],
+  ["Oranges / Clementines", "Box or bag", "produce", "produce"],
+  ["Grapes", "Red or green", "produce", "produce"],
+  ["Strawberries", "Fresh", "produce", "produce"],
+  ["Blueberries", "Fresh", "produce", "produce"],
+  ["Raspberries", "Fresh", "produce", "produce"],
+  ["Pineapple", "", "produce", "produce"],
+  ["Watermelon", "", "produce", "produce"],
+  ["Organic Blueberries", "Costco bulk", "produce", "organic"],
+  ["Organic Carrots", "", "produce", "organic"],
+  ["Organic Spinach", "", "produce", "organic"],
+
+  // Raw meat / deli (Costco) → deli_meat (Sobeys)
+  ["Chicken Breasts", "Boneless skinless, 2 kg", "raw_meat_deli", "deli_meat"],
+  ["Chicken Thighs", "Boneless skinless, 2 kg", "raw_meat_deli", "deli_meat"],
+  ["Whole Chicken / Rotisserie", "", "raw_meat_deli", "deli_meat"],
+  ["Ground Beef", "Lean, 2 kg pack", "raw_meat_deli", "deli_meat"],
+  ["Ground Turkey", "", "raw_meat_deli", "deli_meat"],
+  ["Beef Steaks", "Striploin / ribeye", "raw_meat_deli", "deli_meat"],
+  ["Pork Chops", "", "raw_meat_deli", "deli_meat"],
+  ["Bacon", "Thick cut", "raw_meat_deli", "deli_meat"],
+  ["Sausages / Bratwurst", "", "raw_meat_deli", "deli_meat"],
+  ["Cervelat", "Sliced deli", "raw_meat_deli", "deli_meat"],
+  ["Salami", "Sliced deli", "raw_meat_deli", "deli_meat"],
+  ["Sliced Turkey / Ham", "Lunch meat for sandwiches", "raw_meat_deli", "deli_meat"],
+  ["Marble Cheese — Brick", "", "raw_meat_deli", "deli_meat"],
+  ["Marble Cheese — Slices", "", "raw_meat_deli", "deli_meat"],
+  ["Cheddar Cheese — Block", "Old or medium", "raw_meat_deli", "deli_meat"],
+  ["Mozzarella", "Block or shredded", "raw_meat_deli", "deli_meat"],
+  ["Cheese Strings", "For lunches", "raw_meat_deli", "deli_meat"],
+  ["Cream Cheese", "", "raw_meat_deli", "deli_meat"],
+  ["Feta Cheese", "", "raw_meat_deli", "deli_meat"],
+  ["Parmesan", "Block or grated", "raw_meat_deli", "deli_meat"],
+
+  // Packaged refrigerated
+  ["Hummus", "Traditional", "packaged_refrigerated", "deli_meat"],
+  ["Tzatziki", "MSV", "packaged_refrigerated", "deli_meat"],
+  ["Fresh Salsa", "Refrigerated tub", "packaged_refrigerated", "deli_meat"],
+  ["Guacamole", "Fresh tub", "packaged_refrigerated", "deli_meat"],
+  ["Ranch Dip", "", "packaged_refrigerated", "deli_meat"],
+
+  // Eggs / milk
+  ["Eggs", "5 dozen Costco / 1 dozen Sobeys", "eggs_milk", "dairy"],
+  ["Milk (2%)", "", "eggs_milk", "dairy"],
+  ["Almond Milk", "Unsweetened", "eggs_milk", "dairy"],
+  ["Heavy Cream", "", "eggs_milk", "dairy"],
+  ["Half & Half", "For coffee", "eggs_milk", "dairy"],
+
+  // Yogurt / butter
+  ["Greek Yogurt — Plain", "Oikos large tub", "yogurt_butter", "dairy"],
+  ["Greek Yogurt — Vanilla", "Family size", "yogurt_butter", "dairy"],
+  ["Yogurt Cups", "Individual, kids lunches", "yogurt_butter", "dairy"],
+  ["Cottage Cheese", "4% or 2%", "yogurt_butter", "dairy"],
+  ["Butter — Unsalted", "Organic, 2-pack", "yogurt_butter", "dairy"],
+  ["Butter — Salted", "", "yogurt_butter", "dairy"],
+  ["Sour Cream", "", "yogurt_butter", "dairy"],
+
+  // Paper
+  ["Paper Towels", "Kirkland organic", "paper", "paper"],
+  ["Toilet Paper", "Bulk pack", "paper", "paper"],
+  ["Tissues", "Kleenex", "paper", "paper"],
+  ["Napkins", "", "paper", "paper"],
+
+  // Drinks
+  ["Sparkling Water", "Perrier / Bubly", "drinks", "drinks"],
+  ["Bottled Water", "Case", "drinks", "drinks"],
+  ["Coffee — Whole Bean", "Dark or medium", "drinks", "drinks"],
+  ["Collagen Creamer", "Vital Proteins", "drinks", "drinks"],
+  ["Electrolyte Powder", "LMNT", "drinks", "drinks"],
+  ["Orange Juice", "", "drinks", "drinks"],
+  ["Tea Bags", "", "drinks", "drinks"],
+
+  // Cleaning
+  ["Saran Wrap", "", "cleaning", "cleaning_dish_laundry"],
+  ["Parchment Paper", "", "cleaning", "cleaning_dish_laundry"],
+  ["Aluminum Foil", "", "cleaning", "cleaning_dish_laundry"],
+  ["Ziploc Bags — Quart", "", "cleaning", "cleaning_dish_laundry"],
+  ["Ziploc Bags — Gallon", "", "cleaning", "cleaning_dish_laundry"],
+  ["Garbage Bags", "Kirkland", "cleaning", "cleaning_dish_laundry"],
+  ["All-Purpose Cleaner", "", "cleaning", "cleaning_dish_laundry"],
+  ["Glass Cleaner", "", "cleaning", "cleaning_dish_laundry"],
+  ["Bathroom Cleaner", "", "cleaning", "cleaning_dish_laundry"],
+
+  // Dish / laundry
+  ["Dish Soap", "Kirkland", "dish_laundry", "cleaning_dish_laundry"],
+  ["Dishwasher Pods", "Cascade 115ct", "dish_laundry", "cleaning_dish_laundry"],
+  ["Laundry Detergent", "Kirkland", "dish_laundry", "cleaning_dish_laundry"],
+  ["Fabric Softener", "Kirkland", "dish_laundry", "cleaning_dish_laundry"],
+  ["Dryer Sheets", "", "dish_laundry", "cleaning_dish_laundry"],
+  ["Stain Remover", "Tide pen / OxiClean", "dish_laundry", "cleaning_dish_laundry"],
+  ["Hand Soap", "Refill or pump", "dish_laundry", "cleaning_dish_laundry"],
+  ["Hand Sanitizer", "Bulk pack", "dish_laundry", "cleaning_dish_laundry"],
+
+  // Frozen meat
+  ["Frozen Chicken Breasts", "", "frozen_meat", "frozen_meat_fish"],
+  ["Frozen Chicken Thighs", "", "frozen_meat", "frozen_meat_fish"],
+  ["Frozen Sausages", "", "frozen_meat", "frozen_meat_fish"],
+  ["Frozen Bacon", "", "frozen_meat", "frozen_meat_fish"],
+  ["Frozen Meatballs", "", "frozen_meat", "frozen_meat_fish"],
+  ["Frozen Burger Patties", "", "frozen_meat", "frozen_meat_fish"],
+
+  // Frozen fish
+  ["Frozen Salmon", "Wild fillets", "frozen_fish", "frozen_meat_fish"],
+  ["Frozen Cod / Tilapia", "Fillets", "frozen_fish", "frozen_meat_fish"],
+  ["Miso Cod", "Marinated portions", "frozen_fish", "frozen_meat_fish"],
+  ["Frozen Shrimp", "Peeled & deveined", "frozen_fish", "frozen_meat_fish"],
+
+  // Frozen meals & pizza
+  ["KS Pepperoni Pizza", "Costco frozen", "frozen_meals", "frozen_meals"],
+  ["Frozen Pizza — Other", "Dr. Oetker / Delissio", "frozen_meals", "frozen_meals"],
+  ["Frozen Waffles", "Eggo / Kashi", "frozen_meals", "frozen_meals"],
+  ["Frozen Burritos", "Lunch grab", "frozen_meals", "frozen_meals"],
+  ["Frozen Lasagna", "", "frozen_meals", "frozen_meals"],
+  ["Ice Cream", "Tub", "frozen_meals", "frozen_meals"],
+  ["Ice Cream Sandwiches", "", "frozen_meals", "frozen_meals"],
+  ["Frozen Berries — Mixed", "", "frozen_meals", "frozen_veg"],
+  ["Frozen Blueberries", "Bulk bag", "frozen_meals", "frozen_veg"],
+
+  // Frozen veg
+  ["Frozen Broccoli Florets", "", "frozen_veg", "frozen_veg"],
+  ["Frozen Cauliflower Florets", "", "frozen_veg", "frozen_veg"],
+  ["Frozen Brussels Sprouts", "", "frozen_veg", "frozen_veg"],
+  ["Frozen Mixed Veg / Stir Fry", "", "frozen_veg", "frozen_veg"],
+  ["Frozen Green Beans", "", "frozen_veg", "frozen_veg"],
+  ["Frozen Spinach", "Chopped", "frozen_veg", "frozen_veg"],
+  ["Frozen Edamame", "Shelled", "frozen_veg", "frozen_veg"],
+  ["Riced Cauliflower", "Frozen, low-carb sub", "frozen_veg", "frozen_veg"],
+
+  // Snacks
+  ["Almonds", "Raw, unsalted", "snacks", "snacks"],
+  ["Mixed Nuts", "Kirkland unsalted", "snacks", "snacks"],
+  ["Trail Mix — Chocolate", "WR Trail Mix", "snacks", "snacks"],
+  ["Pumpkin Seeds", "Raw, pepitas", "snacks", "snacks"],
+  ["Chia Seeds", "", "snacks", "snacks"],
+  ["Flaxseed", "Ground", "snacks", "snacks"],
+  ["Beef Sticks", "Kirkland Signature", "snacks", "snacks"],
+  ["Grenade Protein Bars", "", "snacks", "snacks"],
+  ["Other Protein Bars", "Quest / Kind / Built", "snacks", "snacks"],
+  ["Granola Bars", "Nature Valley / Kind", "snacks", "snacks"],
+  ["SkinnyPop Popcorn", "Bag", "snacks", "snacks"],
+  ["Angie's Popcorn", "Bag", "snacks", "snacks"],
+  ["KS Kettle Chips", "", "snacks", "snacks"],
+  ["Microwave Popcorn", "Box", "snacks", "snacks"],
+  ["Goldfish Crackers", "Kids", "snacks", "snacks"],
+  ["Chocolate Chips", "Semi-sweet or dark", "snacks", "snacks"],
+  ["Cookies", "Kids treat", "snacks", "snacks"],
+
+  // Health
+  ["Multivitamin", "Adult", "health", "health"],
+  ["Fish Oil / Omega-3", "1000mg", "health", "health"],
+  ["Vitamin D3", "2000-5000 IU", "health", "health"],
+  ["Magnesium", "Glycinate", "health", "health"],
+  ["Protein Powder", "Whey, vanilla or unflavoured", "health", "health"],
+  ["Tylenol / Advil", "", "health", "health"],
+  ["Bandaids", "", "health", "health"],
+
+  // Spices / baking
+  ["Salt", "Sea / kosher", "spices", "spices_baking"],
+  ["Black Pepper", "Grinder", "spices", "spices_baking"],
+  ["Garlic Powder", "", "spices", "spices_baking"],
+  ["Onion Powder", "", "spices", "spices_baking"],
+  ["Smoked Paprika", "", "spices", "spices_baking"],
+  ["Cumin", "", "spices", "spices_baking"],
+  ["Chili Flakes", "", "spices", "spices_baking"],
+  ["Cinnamon", "", "spices", "spices_baking"],
+  ["Italian Seasoning", "", "spices", "spices_baking"],
+  ["Taco Seasoning", "", "spices", "spices_baking"],
+  ["Ranch Seasoning", "Hidden Valley packet", "spices", "spices_baking"],
+  ["Baking Powder", "", "spices", "spices_baking"],
+  ["Baking Soda", "", "spices", "spices_baking"],
+  ["Vanilla Extract", "", "spices", "spices_baking"],
+  ["All-Purpose Flour", "", "spices", "spices_baking"],
+  ["Almond Flour", "Low-carb", "spices", "spices_baking"],
+  ["Sugar", "White", "spices", "spices_baking"],
+  ["Brown Sugar", "", "spices", "spices_baking"],
+
+  // Condiments / canned
+  ["Olive Oil — EVOO", "Cold-pressed", "condiments_canned", "condiments"],
+  ["Avocado Oil", "High smoke point", "condiments_canned", "condiments"],
+  ["Coconut Oil", "Unrefined", "condiments_canned", "condiments"],
+  ["Almond Butter", "Natural", "condiments_canned", "condiments"],
+  ["Peanut Butter", "Smooth or crunchy", "condiments_canned", "condiments"],
+  ["Mayonnaise", "Avocado oil base", "condiments_canned", "condiments"],
+  ["Dijon Mustard", "", "condiments_canned", "condiments"],
+  ["Yellow Mustard", "", "condiments_canned", "condiments"],
+  ["Ketchup", "", "condiments_canned", "condiments"],
+  ["Hot Sauce", "Frank's / Cholula", "condiments_canned", "condiments"],
+  ["Soy Sauce / Aminos", "Low sodium", "condiments_canned", "condiments"],
+  ["Apple Cider Vinegar", "With the mother", "condiments_canned", "condiments"],
+  ["White Vinegar", "", "condiments_canned", "condiments"],
+  ["Ranch Dressing", "Hidden Valley", "condiments_canned", "condiments"],
+  ["Greek Dressing", "Renée's", "condiments_canned", "condiments"],
+  ["Caesar Dressing", "Renée's", "condiments_canned", "condiments"],
+  ["Italian Dressing", "", "condiments_canned", "condiments"],
+  ["BBQ Sauce", "", "condiments_canned", "condiments"],
+  ["Marinara / Pasta Sauce", "Jar", "condiments_canned", "condiments"],
+  ["Honey", "", "condiments_canned", "condiments"],
+  ["Maple Syrup", "", "condiments_canned", "condiments"],
+  ["Jam / Strawberry", "", "condiments_canned", "condiments"],
+  ["Pace Salsa", "Shelf stable", "condiments_canned", "condiments"],
+  ["Aylmer's Diced Tomatoes", "Canned", "condiments_canned", "canned"],
+  ["Canned Crushed Tomatoes", "", "condiments_canned", "canned"],
+  ["Canned Coconut Milk", "Full fat", "condiments_canned", "canned"],
+  ["Chicken Broth", "Kirkland low sodium", "condiments_canned", "canned"],
+  ["Beef Broth", "", "condiments_canned", "canned"],
+  ["Vegetable Broth", "", "condiments_canned", "canned"],
+  ["Black Beans — Canned", "", "condiments_canned", "canned"],
+  ["Refried Beans", "", "condiments_canned", "canned"],
+  ["Tuna — Canned", "In water", "condiments_canned", "canned"],
+  ["Bick's Pickles — Dills", "", "condiments_canned", "canned"],
+  ["Olives", "Kalamata or green", "condiments_canned", "canned"],
+
+  // Pasta / noodles
+  ["Spaghetti", "", "pasta_noodles", "pasta_rice"],
+  ["Penne / Rotini", "", "pasta_noodles", "pasta_rice"],
+  ["Whole Grain Pasta", "", "pasta_noodles", "pasta_rice"],
+  ["Brown Rice Ramen", "Costco bulk", "pasta_noodles", "pasta_rice"],
+  ["Mac & Cheese", "Boxed, kids", "pasta_noodles", "pasta_rice"],
+  ["Rice — Basmati", "Big bag", "pasta_noodles", "pasta_rice"],
+  ["Rice — Brown", "", "pasta_noodles", "pasta_rice"],
+  ["Quinoa", "", "pasta_noodles", "pasta_rice"],
+  ["Couscous", "", "pasta_noodles", "pasta_rice"],
+
+  // Crackers / cereal
+  ["Rice Crackers", "", "crackers", "snacks"],
+  ["Crunchmaster Crackers", "", "crackers", "snacks"],
+  ["Triscuits / Whole Grain Crackers", "", "crackers", "snacks"],
+  ["Saltines", "", "crackers", "snacks"],
+  ["Cheerios / Cereal", "", "crackers", "snacks"],
+  ["Granola", "", "crackers", "snacks"],
+  ["Oats — Rolled", "Steel cut or large flake", "crackers", "snacks"],
+];
+
+/* ─────────── STATE ─────────── */
+let currentUser = null;
+let allItems = [];          // hydrated from Firestore
+let collapsedSections = {}; // localStorage-cached
+let currentStore = "costco";
+let currentFilter = "needed";
+let searchTerm = "";
+let unsubscribeItems = null;
+let modalOpenTime = 0;
+let activeItemId = null;
+
+/* ─────────── LOCAL STORAGE ─────────── */
+const LS = {
+  session:         "gr_session",
+  collapsed:       "gr_collapsed",
+  store:           "gr_store",
+  filter:          "gr_filter",
+};
+function lsGet(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }
+function lsSet(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+function lsDel(k){ try{ localStorage.removeItem(k); }catch(e){} }
+
+/* ─────────── TOAST ─────────── */
+function toast(msg, type){
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.className = "toast show" + (type ? " "+type : "");
+  clearTimeout(t._timer);
+  t._timer = setTimeout(()=>{ t.classList.remove("show"); }, 2200);
+}
+
+/* ─────────── LOGIN UI ─────────── */
+let loginPickedUser = null;
+let loginPin = "";
+
+function renderUserGrid(){
+  const grid = document.getElementById("userGrid");
+  grid.innerHTML = "";
+  Object.keys(USERS).forEach(key => {
+    const btn = document.createElement("button");
+    btn.className = "user-btn" + (loginPickedUser === key ? " active" : "");
+    btn.textContent = USERS[key].display;
+    btn.addEventListener("click", () => {
+      loginPickedUser = key;
+      loginPin = "";
+      renderUserGrid();
+      renderPinDisplay();
+      document.getElementById("loginError").textContent = "";
+    });
+    grid.appendChild(btn);
+  });
+}
+function renderPinDisplay(){
+  const d = document.getElementById("pinDisplay");
+  d.innerHTML = "";
+  for (let i=0; i<4; i++){
+    const dot = document.createElement("div");
+    dot.className = "pin-dot" + (i < loginPin.length ? " filled" : "");
+    d.appendChild(dot);
+  }
+}
+function renderPinPad(){
+  const pad = document.getElementById("pinPad");
+  pad.innerHTML = "";
+  ["1","2","3","4","5","6","7","8","9","","0","⌫"].forEach(n => {
+    const k = document.createElement("button");
+    k.className = "pin-key" + (n === "⌫" ? " del" : "");
+    k.textContent = n;
+    if (n === ""){ k.style.visibility = "hidden"; pad.appendChild(k); return; }
+    k.addEventListener("click", () => {
+      if (!loginPickedUser){
+        document.getElementById("loginError").textContent = "Pick your name first";
+        return;
+      }
+      if (n === "⌫"){
+        loginPin = loginPin.slice(0, -1);
+      } else if (loginPin.length < 4){
+        loginPin += n;
+      }
+      renderPinDisplay();
+      if (loginPin.length === 4){
+        attemptLogin();
+      }
+    });
+    pad.appendChild(k);
+  });
+}
+function attemptLogin(){
+  const u = USERS[loginPickedUser];
+  if (u && u.pin === loginPin){
+    currentUser = { key: loginPickedUser, ...u };
+    lsSet(LS.session, { key: loginPickedUser, pin: loginPin });
+    enterApp();
+  } else {
+    document.getElementById("loginError").textContent = "Wrong PIN. Try again.";
+    loginPin = "";
+    renderPinDisplay();
+  }
+}
+function autoLogin(){
+  const s = lsGet(LS.session);
+  if (s && USERS[s.key] && USERS[s.key].pin === s.pin){
+    currentUser = { key: s.key, ...USERS[s.key] };
+    enterApp();
+    return true;
+  }
+  return false;
+}
+function logout(){
+  lsDel(LS.session);
+  currentUser = null;
+  loginPickedUser = null;
+  loginPin = "";
+  if (unsubscribeItems){ unsubscribeItems(); unsubscribeItems = null; }
+  document.body.classList.remove("logged-in");
+  setView("loginView");
+  renderUserGrid();
+  renderPinDisplay();
+}
+
+/* ─────────── APP ENTRY ─────────── */
+async function enterApp(){
+  document.body.classList.add("logged-in");
+  document.getElementById("topSub").textContent = `Logged in as ${currentUser.display}`;
+  setView("mainView");
+  collapsedSections = lsGet(LS.collapsed) || {};
+  currentStore = lsGet(LS.store) || "costco";
+  currentFilter = lsGet(LS.filter) || "needed";
+  syncStoreTabs();
+  syncViewTabs();
+  await ensureSeeded();
+  subscribeItems();
+}
+
+/* ─────────── SEEDING ─────────── */
+async function ensureSeeded(){
+  try {
+    const metaRef = doc(db, "gr_meta", "seed");
+    const metaSnap = await getDoc(metaRef);
+    if (metaSnap.exists() && metaSnap.data().done){
+      return;
+    }
+    await runTransaction(db, async (tx) => {
+      const m = await tx.get(metaRef);
+      if (m.exists() && m.data().done) return;
+      tx.set(metaRef, { done: true, by: currentUser.key, at: serverTimestamp() });
+    });
+    const batch = writeBatch(db);
+    SEED_ITEMS.forEach(([name, notes, costcoSection, sobeysSection]) => {
+      const ref = doc(collection(db, "gr_items"));
+      batch.set(ref, {
+        name, notes,
+        costcoSection, sobeysSection,
+        atCostco: true,
+        atSobeys: true,
+        inPantry: false,
+        inGarageFridge: false,
+        needed: false,
+        gotIt: false,
+        hidden: false,
+        isCustom: false,
+        createdBy: currentUser.key,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        updatedBy: currentUser.key,
+      });
+    });
+    await batch.commit();
+    toast("Initial grocery list created!", "success");
+  } catch (e) {
+    console.error("Seeding failed:", e);
+  }
+}
+
+/* ─────────── FIRESTORE SUBSCRIBE ─────────── */
+function subscribeItems(){
+  if (unsubscribeItems) unsubscribeItems();
+  const q = collection(db, "gr_items");
+  unsubscribeItems = onSnapshot(q, (snap) => {
+    allItems = [];
+    snap.forEach(d => {
+      allItems.push({ id: d.id, ...d.data() });
+    });
+    renderActive();
+    updateBadges();
+  }, err => {
+    console.error("Items subscription error:", err);
+    toast("Connection issue — check internet", "error");
+  });
+}
+
+/* ─────────── ITEM MUTATIONS ─────────── */
+async function updateItem(id, patch){
+  try {
+    await updateDoc(doc(db, "gr_items", id), {
+      ...patch,
+      updatedAt: serverTimestamp(),
+      updatedBy: currentUser.key,
+    });
+  } catch (e) {
+    console.error("updateItem", e);
+    toast("Failed to save — check internet", "error");
+  }
+}
+async function addItem(data){
+  try {
+    await addDoc(collection(db, "gr_items"), {
+      ...data,
+      isCustom: true,
+      hidden: false,
+      gotIt: false,
+      createdBy: currentUser.key,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      updatedBy: currentUser.key,
+    });
+    toast("Item added", "success");
+  } catch (e) {
+    console.error("addItem", e);
+    toast("Failed to add item", "error");
+  }
+}
+async function deleteItemById(id){
+  try{ await deleteDoc(doc(db, "gr_items", id)); }
+  catch(e){ console.error("deleteItem", e); toast("Failed to delete","error"); }
+}
+
+/* ─────────── RENDERING ─────────── */
+function setView(viewId){
+  document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+  const el = document.getElementById(viewId);
+  if (el) el.classList.add("active");
+  window.scrollTo(0, 0);
+}
+
+function syncStoreTabs(){
+  document.querySelectorAll(".store-tab").forEach(t => {
+    t.classList.toggle("active", t.dataset.store === currentStore);
+  });
+}
+function syncViewTabs(){
+  document.querySelectorAll(".view-tab").forEach(t => {
+    t.classList.toggle("active", t.dataset.filter === currentFilter);
+  });
+}
+
+function getActiveSections(){
+  return currentStore === "costco" ? COSTCO_SECTIONS : SOBEYS_SECTIONS;
+}
+function sectionKeyOf(item){
+  return currentStore === "costco" ? item.costcoSection : item.sobeysSection;
+}
+function inCurrentStore(item){
+  return currentStore === "costco" ? item.atCostco : item.atSobeys;
+}
+
+function filterItems(items){
+  return items.filter(i => {
+    if (i.hidden) return false;
+    if (!inCurrentStore(i)) return false;
+    if (searchTerm){
+      const s = searchTerm.toLowerCase();
+      if (!i.name.toLowerCase().includes(s) && !(i.notes||"").toLowerCase().includes(s))
+        return false;
+    }
+    if (currentFilter === "needed"){
+      return i.needed || i.gotIt;
+    }
+    if (currentFilter === "pantry"){
+      return i.inPantry;
+    }
+    return true;
+  });
+}
+
+function renderMain(){
+  const container = document.getElementById("sectionsContainer");
+  container.innerHTML = "";
+  const sections = getActiveSections();
+  const items = filterItems(allItems);
+
+  if (items.length === 0){
+    container.innerHTML = `
+      <div class="empty">
+        <div class="empty-emoji">${currentFilter === 'needed' ? '✓' : '📭'}</div>
+        <div class="empty-title">${currentFilter === 'needed' ? 'Nothing on the list' : 'No items'}</div>
+        <div class="empty-sub">${currentFilter === 'needed' ? 'Tap items in "All Items" to add to the shop' : searchTerm ? 'Try a different search' : 'Add items to get started'}</div>
+      </div>`;
+    return;
+  }
+
+  sections.forEach(([key, label]) => {
+    const sectItems = items.filter(i => sectionKeyOf(i) === key);
+    if (sectItems.length === 0) return;
+    sectItems.sort((a,b) => {
+      const aRank = a.needed && !a.gotIt ? 0 : a.gotIt ? 2 : 1;
+      const bRank = b.needed && !b.gotIt ? 0 : b.gotIt ? 2 : 1;
+      if (aRank !== bRank) return aRank - bRank;
+      return a.name.localeCompare(b.name);
+    });
+    container.appendChild(buildSection(key, label, sectItems));
+  });
+}
+
+function buildSection(key, label, items){
+  const sec = document.createElement("div");
+  sec.className = "section" + (collapsedSections[key] ? " collapsed" : "");
+
+  const needed = items.filter(i => i.needed && !i.gotIt).length;
+  const got = items.filter(i => i.gotIt).length;
+
+  const head = document.createElement("div");
+  head.className = "section-header";
+  head.innerHTML = `
+    <div class="section-title">${label}</div>
+    <div class="section-meta">
+      <div class="section-count">${needed > 0 ? `<span class="needed">${needed} needed</span> · ` : ""}${items.length} total</div>
+      <div class="section-toggle">▼</div>
+    </div>`;
+  head.addEventListener("click", () => {
+    collapsedSections[key] = !collapsedSections[key];
+    lsSet(LS.collapsed, collapsedSections);
+    sec.classList.toggle("collapsed");
+  });
+  sec.appendChild(head);
+
+  const body = document.createElement("div");
+  body.className = "section-body";
+  items.forEach(item => body.appendChild(buildItemRow(item)));
+  sec.appendChild(body);
+  return sec;
+}
+
+function buildItemRow(item){
+  const row = document.createElement("div");
+  row.className = "item" + (item.gotIt ? " gotit dim" : "");
+
+  const cb = document.createElement("div");
+  cb.className = "item-checkbox" + (item.gotIt ? " gotit" : item.needed ? " needed" : "");
+  cb.addEventListener("click", (e) => {
+    e.stopPropagation();
+    toggleItemNeeded(item);
+  });
+
+  const content = document.createElement("div");
+  content.className = "item-content";
+  const nm = document.createElement("div");
+  nm.className = "item-name";
+  nm.textContent = item.name;
+  content.appendChild(nm);
+  if (item.notes){
+    const nt = document.createElement("div");
+    nt.className = "item-notes";
+    nt.textContent = item.notes;
+    content.appendChild(nt);
+  }
+  if (item.inPantry || item.inGarageFridge){
+    const tags = document.createElement("div");
+    tags.className = "item-tags";
+    if (item.inPantry){
+      const t = document.createElement("span");
+      t.className = "tag tag-pantry";
+      t.textContent = "In Pantry";
+      tags.appendChild(t);
+    }
+    if (item.inGarageFridge){
+      const t = document.createElement("span");
+      t.className = "tag tag-garage";
+      t.textContent = "Garage Fridge";
+      tags.appendChild(t);
+    }
+    content.appendChild(tags);
+  }
+
+  const action = document.createElement("button");
+  action.className = "item-actions";
+  action.textContent = "⋯";
+  action.addEventListener("click", (e) => {
+    e.stopPropagation();
+    openItemModal(item.id);
+  });
+
+  row.appendChild(cb);
+  row.appendChild(content);
+  row.appendChild(action);
+  return row;
+}
+
+async function toggleItemNeeded(item){
+  if (item.gotIt){
+    await updateItem(item.id, { gotIt: false, needed: true });
+  } else if (item.needed){
+    await updateItem(item.id, { gotIt: true });
+  } else {
+    await updateItem(item.id, { needed: true, gotIt: false });
+  }
+}
+
+function updateBadges(){
+  const eligible = allItems.filter(i => !i.hidden);
+  const needed = eligible.filter(i => i.needed && !i.gotIt && (currentStore === "costco" ? i.atCostco : i.atSobeys)).length;
+  const pantry = eligible.filter(i => i.inPantry).length;
+  document.getElementById("cntNeeded").textContent = needed;
+  document.getElementById("cntPantry").textContent = pantry;
+}
+
+function renderActive(){
+  const active = document.querySelector(".view.active");
+  if (!active) return;
+  if (active.id === "mainView") renderMain();
+  if (active.id === "garageView") renderGarage();
+  if (active.id === "customizeView") renderCustomize();
+  if (active.id === "historyView") renderHistory();
+}
+
+/* ─────────── GARAGE FRIDGE VIEW ─────────── */
+function renderGarage(){
+  const c = document.getElementById("garageContainer");
+  c.innerHTML = "";
+  const items = allItems.filter(i => !i.hidden && i.inGarageFridge);
+  if (items.length === 0){
+    c.innerHTML = `
+      <div class="empty">
+        <div class="empty-emoji">🏠</div>
+        <div class="empty-title">Garage fridge is empty</div>
+        <div class="empty-sub">Mark items as "in garage fridge" via the ⋯ menu after a Costco shop</div>
+      </div>`;
+    return;
+  }
+  items.sort((a,b) => a.name.localeCompare(b.name));
+  const sec = document.createElement("div");
+  sec.className = "section";
+  sec.innerHTML = `<div class="section-header" style="border-left-color:var(--blue);background:var(--blue-lt)">
+    <div class="section-title" style="color:var(--blue)">🏠 In Garage Fridge</div>
+    <div class="section-meta"><div class="section-count">${items.length} items</div></div>
+  </div>`;
+  const body = document.createElement("div");
+  body.className = "section-body";
+  items.forEach(item => {
+    const row = document.createElement("div");
+    row.className = "item";
+    row.innerHTML = `
+      <div class="item-content">
+        <div class="item-name">${escapeHtml(item.name)}</div>
+        ${item.notes ? `<div class="item-notes">${escapeHtml(item.notes)}</div>` : ""}
+      </div>`;
+    const moveBtn = document.createElement("button");
+    moveBtn.className = "item-actions";
+    moveBtn.textContent = "→";
+    moveBtn.title = "Move to pantry";
+    moveBtn.addEventListener("click", async () => {
+      await updateItem(item.id, { inGarageFridge: false, inPantry: true });
+      toast("Moved to pantry", "success");
+    });
+    row.appendChild(moveBtn);
+    body.appendChild(row);
+  });
+  sec.appendChild(body);
+  c.appendChild(sec);
+}
+
+/* ─────────── CUSTOMIZE VIEW ─────────── */
+let customizeSearchTerm = "";
+function renderCustomize(){
+  const c = document.getElementById("customizeContainer");
+  c.innerHTML = "";
+  let items = allItems.slice();
+  if (customizeSearchTerm){
+    const s = customizeSearchTerm.toLowerCase();
+    items = items.filter(i => i.name.toLowerCase().includes(s) || (i.notes||"").toLowerCase().includes(s));
+  }
+  items.sort((a,b) => {
+    if (a.hidden !== b.hidden) return a.hidden ? 1 : -1;
+    return a.name.localeCompare(b.name);
+  });
+  if (items.length === 0){
+    c.innerHTML = `<div class="empty"><div class="empty-emoji">🔍</div><div class="empty-title">No matches</div></div>`;
+    return;
+  }
+  const sec = document.createElement("div");
+  sec.className = "section";
+  sec.innerHTML = `<div class="section-header"><div class="section-title">All Items (${items.length})</div></div>`;
+  const body = document.createElement("div");
+  body.className = "section-body";
+  items.forEach(item => {
+    const row = document.createElement("div");
+    row.className = "item" + (item.hidden ? " dim" : "");
+    row.innerHTML = `
+      <div class="item-content">
+        <div class="item-name">${escapeHtml(item.name)} ${item.hidden ? "<span style='font-size:11px;color:var(--red);font-weight:600'>(hidden)</span>" : ""}</div>
+        ${item.notes ? `<div class="item-notes">${escapeHtml(item.notes)}</div>` : ""}
+      </div>`;
+    const btn = document.createElement("button");
+    btn.className = "item-actions";
+    btn.textContent = item.hidden ? "👁" : "🚫";
+    btn.title = item.hidden ? "Show" : "Hide";
+    btn.addEventListener("click", async () => {
+      await updateItem(item.id, { hidden: !item.hidden });
+      toast(item.hidden ? "Item shown" : "Item hidden", "success");
+    });
+    const del = document.createElement("button");
+    del.className = "item-actions";
+    del.textContent = "🗑";
+    del.title = "Delete";
+    del.style.color = "var(--red)";
+    del.addEventListener("click", async () => {
+      if (confirm(`Delete "${item.name}" permanently? This can't be undone.`)){
+        await deleteItemById(item.id);
+        toast("Deleted", "success");
+      }
+    });
+    row.appendChild(btn);
+    row.appendChild(del);
+    body.appendChild(row);
+  });
+  sec.appendChild(body);
+  c.appendChild(sec);
+}
+
+/* ─────────── HISTORY VIEW ─────────── */
+async function renderHistory(){
+  const c = document.getElementById("historyContainer");
+  c.innerHTML = `<div class="empty"><div class="empty-emoji">⏳</div><div class="empty-title">Loading…</div></div>`;
+  try {
+    const snap = await getDocs(collection(db, "gr_shops"));
+    const shops = [];
+    snap.forEach(d => shops.push({ id: d.id, ...d.data() }));
+    shops.sort((a,b) => (b.dateMs || 0) - (a.dateMs || 0));
+    c.innerHTML = "";
+    if (shops.length === 0){
+      c.innerHTML = `<div class="empty"><div class="empty-emoji">📋</div><div class="empty-title">No shops yet</div><div class="empty-sub">Complete a shop to see it here</div></div>`;
+      return;
+    }
+    shops.forEach(s => {
+      const card = document.createElement("div");
+      card.className = "history-card";
+      const dateStr = s.dateMs ? new Date(s.dateMs).toLocaleDateString("en-CA", { weekday:"short", year:"numeric", month:"short", day:"numeric" }) : "";
+      const got = (s.items || []).filter(i => i.gotIt).length;
+      const missed = (s.items || []).filter(i => !i.gotIt).length;
+      card.innerHTML = `
+        <div class="history-row">
+          <div class="history-store ${s.store === 'sobeys' ? 'sobeys' : ''}">${s.store === 'sobeys' ? '🛒 Sobeys / Safeway' : '🛒 Costco'}</div>
+          <div class="history-total">$${(s.totalCost || 0).toFixed(2)}</div>
+        </div>
+        <div class="history-row">
+          <div class="history-date">${dateStr} · by ${s.shopperName || 'Unknown'}</div>
+        </div>
+        <div class="history-stats">${got} bought${missed > 0 ? ` · ${missed} not available` : ''}</div>
+        <div class="history-actions">
+          <button class="history-btn" data-act="share" data-id="${s.id}">📤 Share</button>
+          <button class="history-btn" data-act="view" data-id="${s.id}">👁 View Items</button>
+          <button class="history-btn" data-act="del" data-id="${s.id}" style="color:var(--red)">🗑 Delete</button>
+        </div>`;
+      c.appendChild(card);
+    });
+    c.addEventListener("click", historyClickHandler, { once: true });
+  } catch (e) {
+    console.error(e);
+    c.innerHTML = `<div class="empty"><div class="empty-emoji">⚠️</div><div class="empty-title">Couldn't load history</div></div>`;
+  }
+}
+async function historyClickHandler(e){
+  const btn = e.target.closest("[data-act]");
+  if (!btn) { renderHistory(); return; }
+  const id = btn.dataset.id;
+  const act = btn.dataset.act;
+  const snap = await getDoc(doc(db, "gr_shops", id));
+  if (!snap.exists()){ renderHistory(); return; }
+  const s = snap.data();
+  if (act === "share") shareShop(s);
+  else if (act === "view") viewShopItems(s);
+  else if (act === "del" && confirm("Delete this shop record?")){
+    await deleteDoc(doc(db, "gr_shops", id));
+    toast("Shop deleted", "success");
+  }
+  renderHistory();
+}
+function shareShop(s){
+  const dateStr = s.dateMs ? new Date(s.dateMs).toLocaleDateString() : "";
+  const got = (s.items || []).filter(i => i.gotIt).map(i => `✓ ${i.name}`).join("\n");
+  const missed = (s.items || []).filter(i => !i.gotIt).map(i => `✗ ${i.name}`).join("\n");
+  const text = `🛒 ${s.store === 'sobeys' ? 'Sobeys/Safeway' : 'Costco'} Shop — ${dateStr}
+By: ${s.shopperName || 'Unknown'}
+Total: $${(s.totalCost || 0).toFixed(2)}
+
+BOUGHT (${(s.items || []).filter(i=>i.gotIt).length}):
+${got || "(none)"}
+${missed ? `\nNOT AVAILABLE (${(s.items || []).filter(i=>!i.gotIt).length}):\n${missed}` : ""}`;
+  if (navigator.share){
+    navigator.share({ title:"Grocery Shop", text }).catch(()=>{});
+  } else {
+    navigator.clipboard.writeText(text).then(()=>toast("Copied to clipboard","success"));
+  }
+}
+function viewShopItems(s){
+  const got = (s.items || []).filter(i => i.gotIt).map(i => `✓ ${i.name}`).join("\n");
+  const missed = (s.items || []).filter(i => !i.gotIt).map(i => `✗ ${i.name}`).join("\n");
+  alert(`BOUGHT:\n${got || "(none)"}\n\n${missed ? `NOT AVAILABLE:\n${missed}` : ""}`);
+}
+
+/* ─────────── ITEM MODAL ─────────── */
+function openItemModal(itemId){
+  activeItemId = itemId;
+  const item = allItems.find(i => i.id === itemId);
+  if (!item) return;
+  document.getElementById("itemModalTitle").textContent = item.name;
+  // Status toggles
+  const statusEl = document.getElementById("itemStatusToggles");
+  statusEl.innerHTML = "";
+  [
+    ["needed",        "Needed",       item.needed && !item.gotIt],
+    ["gotit",         "Got It",       item.gotIt],
+    ["pantry",        "In Pantry",    item.inPantry],
+    ["garage",        "Garage Fridge",item.inGarageFridge],
+  ].forEach(([k, label, active]) => {
+    const b = document.createElement("button");
+    b.className = "toggle-btn" + (active ? " active" : "");
+    b.textContent = label;
+    b.addEventListener("click", () => onStatusToggle(k));
+    statusEl.appendChild(b);
+  });
+  // Store availability
+  document.querySelectorAll("[data-store-toggle]").forEach(b => {
+    const s = b.dataset.storeToggle;
+    b.classList.toggle("active", s === "costco" ? item.atCostco : item.atSobeys);
+    b.onclick = () => {
+      const cur = allItems.find(i => i.id === activeItemId);
+      if (!cur) return;
+      const patch = s === "costco" ? { atCostco: !cur.atCostco } : { atSobeys: !cur.atSobeys };
+      updateItem(activeItemId, patch);
+    };
+  });
+  document.getElementById("btnEditItem").onclick = () => editItemFlow(item);
+  document.getElementById("btnHideItem").onclick = () => {
+    updateItem(item.id, { hidden: true });
+    closeModal("itemModal");
+    toast("Item hidden", "success");
+  };
+  document.getElementById("btnCloseItemModal").onclick = () => closeModal("itemModal");
+  openModal("itemModal");
+}
+function onStatusToggle(k){
+  const item = allItems.find(i => i.id === activeItemId);
+  if (!item) return;
+  let patch = {};
+  if (k === "needed") patch = { needed: !item.needed || item.gotIt, gotIt: false };
+  else if (k === "gotit") patch = { gotIt: !item.gotIt };
+  else if (k === "pantry") patch = { inPantry: !item.inPantry };
+  else if (k === "garage") patch = { inGarageFridge: !item.inGarageFridge };
+  updateItem(activeItemId, patch);
+}
+
+/* ─────────── ADD / EDIT ITEM ─────────── */
+let editingItemId = null;
+function openAddModal(){
+  editingItemId = null;
+  document.getElementById("addModalTitle").textContent = "Add New Item";
+  document.getElementById("addName").value = "";
+  document.getElementById("addNotes").value = "";
+  populateSectionSelectors();
+  openModal("addModal");
+  setTimeout(() => document.getElementById("addName").focus(), 200);
+}
+function editItemFlow(item){
+  closeModal("itemModal");
+  setTimeout(() => {
+    editingItemId = item.id;
+    document.getElementById("addModalTitle").textContent = "Edit Item";
+    document.getElementById("addName").value = item.name;
+    document.getElementById("addNotes").value = item.notes || "";
+    populateSectionSelectors(item.costcoSection, item.sobeysSection);
+    openModal("addModal");
+  }, 250);
+}
+function populateSectionSelectors(cSel, sSel){
+  const c = document.getElementById("addCostcoSection");
+  c.innerHTML = "";
+  COSTCO_SECTIONS.forEach(([k,label]) => {
+    const o = document.createElement("option");
+    o.value = k; o.textContent = label.replace(/^[^ ]+ /, "");
+    if (cSel === k) o.selected = true;
+    c.appendChild(o);
+  });
+  const s = document.getElementById("addSobeysSection");
+  s.innerHTML = "";
+  SOBEYS_SECTIONS.forEach(([k,label]) => {
+    const o = document.createElement("option");
+    o.value = k; o.textContent = label.replace(/^[^ ]+ /, "");
+    if (sSel === k) o.selected = true;
+    s.appendChild(o);
+  });
+}
+async function saveAddItem(){
+  const name = document.getElementById("addName").value.trim();
+  const notes = document.getElementById("addNotes").value.trim();
+  const cSec = document.getElementById("addCostcoSection").value;
+  const sSec = document.getElementById("addSobeysSection").value;
+  if (!name){ toast("Enter a name","error"); return; }
+  if (editingItemId){
+    await updateItem(editingItemId, { name, notes, costcoSection: cSec, sobeysSection: sSec });
+    toast("Item updated", "success");
+  } else {
+    await addItem({
+      name, notes,
+      costcoSection: cSec, sobeysSection: sSec,
+      atCostco: true, atSobeys: true,
+      inPantry: false, inGarageFridge: false,
+      needed: true,
+    });
+  }
+  closeModal("addModal");
+  editingItemId = null;
+}
+
+/* ─────────── COMPLETE SHOP ─────────── */
+let completeStore = "costco";
+let completeWhere = "pantry";
+function openCompleteModal(){
+  completeStore = currentStore;
+  completeWhere = "pantry";
+  document.querySelectorAll("[data-cstore]").forEach(b => {
+    b.classList.toggle("active", b.dataset.cstore === completeStore);
+    b.onclick = () => {
+      completeStore = b.dataset.cstore;
+      document.querySelectorAll("[data-cstore]").forEach(x => x.classList.toggle("active", x.dataset.cstore === completeStore));
+      refreshCompleteSummary();
+    };
+  });
+  document.querySelectorAll("[data-where]").forEach(b => {
+    b.classList.toggle("active", b.dataset.where === completeWhere);
+    b.onclick = () => {
+      completeWhere = b.dataset.where;
+      document.querySelectorAll("[data-where]").forEach(x => x.classList.toggle("active", x.dataset.where === completeWhere));
+    };
+  });
+  document.getElementById("completeCost").value = "";
+  refreshCompleteSummary();
+  openModal("completeModal");
+}
+function refreshCompleteSummary(){
+  const got = allItems.filter(i => i.gotIt).length;
+  const stillNeeded = allItems.filter(i => i.needed && !i.gotIt).length;
+  document.getElementById("completeSummary").innerHTML =
+    `<strong>${got}</strong> items got · <strong>${stillNeeded}</strong> still needed (will stay on list)`;
+}
+async function confirmCompleteShop(){
+  const costStr = document.getElementById("completeCost").value;
+  const cost = parseFloat(costStr) || 0;
+  const got = allItems.filter(i => i.gotIt);
+  const stillNeeded = allItems.filter(i => i.needed && !i.gotIt);
+  if (got.length === 0 && !confirm("No items marked Got It. Save anyway?")) return;
+
+  const shopRecord = {
+    store: completeStore,
+    totalCost: cost,
+    dateMs: Date.now(),
+    shopperName: currentUser.display,
+    items: [
+      ...got.map(i => ({ id:i.id, name:i.name, gotIt:true })),
+      ...stillNeeded.map(i => ({ id:i.id, name:i.name, gotIt:false })),
+    ],
+    createdAt: serverTimestamp(),
+  };
+  try {
+    await addDoc(collection(db, "gr_shops"), shopRecord);
+  } catch (e) {
+    console.error(e);
+    toast("Couldn't save shop record","error");
+    return;
+  }
+
+  // Reset Got It flags, decide pantry/garage placement
+  const batch = writeBatch(db);
+  got.forEach(item => {
+    let patch = { gotIt: false, needed: false, updatedAt: serverTimestamp(), updatedBy: currentUser.key };
+    if (completeWhere === "pantry") patch.inPantry = true;
+    else if (completeWhere === "garage") patch.inGarageFridge = true;
+    // If "ask" — default to pantry, user can move via Garage view
+    else patch.inPantry = true;
+    batch.update(doc(db, "gr_items", item.id), patch);
+  });
+  try {
+    await batch.commit();
+    closeModal("completeModal");
+    toast(`Shop saved — ${got.length} items, $${cost.toFixed(2)}`, "success");
+  } catch (e) {
+    console.error(e);
+    toast("Couldn't update items","error");
+  }
+}
+
+/* ─────────── MODAL HELPERS ─────────── */
+function openModal(id){
+  modalOpenTime = Date.now();
+  const m = document.getElementById(id);
+  m.classList.add("show");
+  document.body.classList.add("locked");
+}
+function closeModal(id){
+  const m = document.getElementById(id);
+  m.classList.remove("show");
+  document.body.classList.remove("locked");
+}
+function setupModalDismiss(){
+  document.querySelectorAll("[data-modal]").forEach(m => {
+    m.addEventListener("click", (e) => {
+      if (Date.now() - modalOpenTime < 250) return; // iOS ghost click guard
+      if (e.target === m) closeModal(m.id);
+    });
+  });
+}
+
+/* ─────────── EVENT WIRING ─────────── */
+function wireEvents(){
+  // store tabs
+  document.querySelectorAll(".store-tab").forEach(t => {
+    t.addEventListener("click", () => {
+      currentStore = t.dataset.store;
+      lsSet(LS.store, currentStore);
+      syncStoreTabs();
+      renderActive();
+      updateBadges();
+    });
+  });
+  // view tabs
+  document.querySelectorAll(".view-tab").forEach(t => {
+    t.addEventListener("click", () => {
+      currentFilter = t.dataset.filter;
+      lsSet(LS.filter, currentFilter);
+      syncViewTabs();
+      renderActive();
+    });
+  });
+  // search
+  document.getElementById("searchInput").addEventListener("input", (e) => {
+    searchTerm = e.target.value;
+    renderActive();
+  });
+  document.getElementById("customSearch").addEventListener("input", (e) => {
+    customizeSearchTerm = e.target.value;
+    renderCustomize();
+  });
+  // top icons
+  document.getElementById("btnHistory").addEventListener("click", () => { setView("historyView"); renderHistory(); });
+  document.getElementById("btnGarage").addEventListener("click", () => { setView("garageView"); renderGarage(); });
+  document.getElementById("btnCustomize").addEventListener("click", () => { setView("customizeView"); renderCustomize(); });
+  document.getElementById("btnLogout").addEventListener("click", () => { if (confirm("Log out?")) logout(); });
+  // bottom bar
+  document.getElementById("btnAddItem").addEventListener("click", openAddModal);
+  document.getElementById("btnCompleteShop").addEventListener("click", openCompleteModal);
+  // back buttons
+  document.querySelectorAll("[data-nav='main']").forEach(b => {
+    b.addEventListener("click", () => setView("mainView"));
+  });
+  // modal save / cancel
+  document.getElementById("btnSaveAdd").addEventListener("click", saveAddItem);
+  document.getElementById("btnCancelAdd").addEventListener("click", () => closeModal("addModal"));
+  document.getElementById("btnConfirmComplete").addEventListener("click", confirmCompleteShop);
+  document.getElementById("btnCancelComplete").addEventListener("click", () => closeModal("completeModal"));
+  setupModalDismiss();
+}
+
+/* ─────────── UTILS ─────────── */
+function escapeHtml(s){
+  return String(s || "").replace(/[&<>"']/g, c =>
+    ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+}
+
+/* ─────────── BOOT ─────────── */
+renderUserGrid();
+renderPinDisplay();
+renderPinPad();
+wireEvents();
+if (autoLogin()) {
+  // already logged in
+} else {
+  // login screen showing
+}
+
+/* ─────────── SERVICE WORKER ─────────── */
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").then(reg => {
+      reg.addEventListener("updatefound", () => {
+        const newWorker = reg.installing;
+        if (newWorker) {
+          newWorker.addEventListener("statechange", () => {
+            if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+              window.location.reload();
+            }
+          });
+        }
+      });
+    }).catch(err => console.warn("SW registration failed:", err));
+  });
+}
+
+// Expose a couple of debug helpers
+window.__gr = { allItems: () => allItems, currentUser: () => currentUser };
+</script>
+
+</body>
+</html>
