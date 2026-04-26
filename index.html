@@ -188,6 +188,12 @@
     font-size:18px; border-radius:8px;
   }
   .item-actions:active{background:var(--bg)}
+  .item-quick-remove{
+    width:32px; height:32px; flex-shrink:0; display:flex;
+    align-items:center; justify-content:center; color:var(--red);
+    font-size:18px; font-weight:700; border-radius:8px;
+  }
+  .item-quick-remove:active{background:var(--red-lt)}
 
   /* ─── BOTTOM BAR ─── */
   .bottom-bar{
@@ -1239,6 +1245,21 @@ function buildItemRow(item){
 
   row.appendChild(cb);
   row.appendChild(content);
+  // Quick-remove ✕ — only on items currently Needed (not yet Picked)
+  if (item.needed && !item.gotIt){
+    const rm = document.createElement("button");
+    rm.className = "item-quick-remove";
+    rm.textContent = "✕";
+    rm.setAttribute("aria-label", "Remove from list");
+    rm.addEventListener("click", (e) => {
+      e.stopPropagation();
+      // Optimistic: clear flags locally, fire-and-forget Firestore
+      Object.assign(item, { needed: false, gotIt: false });
+      updateItem(item.id, { needed: false, gotIt: false });
+      toast("Removed from list", "success");
+    });
+    row.appendChild(rm);
+  }
   row.appendChild(action);
   return row;
 }

@@ -1,5 +1,5 @@
 // 5Bucks Home — service worker
-const VERSION = "2026-04-26.1";
+const VERSION = "2026-04-26.2";
 const CACHE = "fivebucks-" + VERSION;
 const SHELL = ["/", "/index.html"];
 
