@@ -6,10 +6,10 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Bokitch Grocery">
+<meta name="apple-mobile-web-app-title" content="5Bucks Home">
 <meta name="theme-color" content="#1a7a4a">
 <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgcng9IjE4IiBmaWxsPSIjMWE3YTRhIi8+PHRleHQgeD0iNTAiIHk9IjY3IiBmb250LXNpemU9IjU1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7wn5uSPC90ZXh0Pjwvc3ZnPg==">
-<title>Bokitch Grocery</title>
+<title>5Bucks Home</title>
 <style>
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
   :root{
@@ -330,7 +330,7 @@
 <!-- ================= LOGIN VIEW ================= -->
 <div id="loginView" class="view active">
   <div class="login-card">
-    <div class="login-title">🛒 Bokitch Grocery</div>
+    <div class="login-title">🛒 5Bucks Home</div>
     <div class="login-sub">Pick your name, enter your PIN</div>
     <div class="user-grid" id="userGrid"></div>
     <div class="pin-display" id="pinDisplay"></div>
@@ -347,12 +347,12 @@
     <div class="top-bar">
       <div class="top-row">
         <div>
-          <div class="top-title">🛒 Bokitch Grocery</div>
+          <div class="top-title">🛒 5Bucks Home</div>
           <div class="top-sub" id="topSub">Loading...</div>
         </div>
         <div class="top-actions">
+          <button class="icon-btn" id="btnGarage" title="Garage Fridge">🧊</button>
           <button class="icon-btn" id="btnHistory" title="History">📋</button>
-          <button class="icon-btn" id="btnGarage" title="Garage Fridge">🏠</button>
           <button class="icon-btn" id="btnCustomize" title="Customize">⚙️</button>
           <button class="icon-btn" id="btnLogout" title="Logout">🚪</button>
         </div>
@@ -364,8 +364,8 @@
     </div>
 
     <div class="view-tabs">
-      <button class="view-tab active" data-filter="needed">Needed <span class="badge" id="cntNeeded">0</span></button>
-      <button class="view-tab" data-filter="all">All Items</button>
+      <button class="view-tab active" data-filter="all">All Items</button>
+      <button class="view-tab" data-filter="needed">Needed <span class="badge" id="cntNeeded">0</span></button>
       <button class="view-tab" data-filter="pantry">Pantry <span class="badge" id="cntPantry">0</span></button>
     </div>
 
@@ -387,7 +387,7 @@
   <div id="garageView" class="view">
     <div class="sub-header">
       <button class="back-btn" data-nav="main">←</button>
-      <div class="sub-header-title">🏠 Garage Fridge</div>
+      <div class="sub-header-title">🧊 Garage Fridge</div>
     </div>
     <div class="sections-container" id="garageContainer"></div>
   </div>
@@ -434,7 +434,8 @@
       </div>
     </div>
     <button class="modal-btn modal-btn-secondary" id="btnEditItem">Edit name / notes</button>
-    <button class="modal-btn modal-btn-danger" id="btnHideItem">Hide from list</button>
+    <button class="modal-btn modal-btn-secondary" id="btnNotNeeded">Don't need anymore</button>
+    <button class="modal-btn modal-btn-danger" id="btnHideItem">Hide permanently</button>
     <button class="modal-btn modal-btn-secondary" id="btnCloseItemModal">Done</button>
   </div>
 </div>
@@ -859,7 +860,7 @@ let currentUser = null;
 let allItems = [];          // hydrated from Firestore
 let collapsedSections = {}; // localStorage-cached
 let currentStore = "costco";
-let currentFilter = "needed";
+let currentFilter = "all";
 let searchTerm = "";
 let unsubscribeItems = null;
 let modalOpenTime = 0;
@@ -981,7 +982,7 @@ async function enterApp(){
   setView("mainView");
   collapsedSections = lsGet(LS.collapsed) || {};
   currentStore = lsGet(LS.store) || "costco";
-  currentFilter = lsGet(LS.filter) || "needed";
+  currentFilter = lsGet(LS.filter) || "all";
   syncStoreTabs();
   syncViewTabs();
   await ensureSeeded();
@@ -1277,7 +1278,7 @@ function renderGarage(){
   if (items.length === 0){
     c.innerHTML = `
       <div class="empty">
-        <div class="empty-emoji">🏠</div>
+        <div class="empty-emoji">🧊</div>
         <div class="empty-title">Garage fridge is empty</div>
         <div class="empty-sub">Mark items as "in garage fridge" via the ⋯ menu after a Costco shop</div>
       </div>`;
@@ -1287,7 +1288,7 @@ function renderGarage(){
   const sec = document.createElement("div");
   sec.className = "section";
   sec.innerHTML = `<div class="section-header" style="border-left-color:var(--blue);background:var(--blue-lt)">
-    <div class="section-title" style="color:var(--blue)">🏠 In Garage Fridge</div>
+    <div class="section-title" style="color:var(--blue)">🧊 In Garage Fridge</div>
     <div class="section-meta"><div class="section-count">${items.length} items</div></div>
   </div>`;
   const body = document.createElement("div");
@@ -1465,7 +1466,7 @@ function openItemModal(itemId){
   statusEl.innerHTML = "";
   [
     ["needed",        "Needed",       item.needed && !item.gotIt],
-    ["gotit",         "Got It",       item.gotIt],
+    ["gotit",         "Picked",       item.gotIt],
     ["pantry",        "In Pantry",    item.inPantry],
     ["garage",        "Garage Fridge",item.inGarageFridge],
   ].forEach(([k, label, active]) => {
@@ -1487,6 +1488,14 @@ function openItemModal(itemId){
     };
   });
   document.getElementById("btnEditItem").onclick = () => editItemFlow(item);
+  document.getElementById("btnNotNeeded").onclick = () => {
+    // Optimistic UI: clear flags locally, fire-and-forget Firestore
+    const cur = allItems.find(i => i.id === activeItemId);
+    if (cur) Object.assign(cur, { needed: false, gotIt: false });
+    updateItem(activeItemId, { needed: false, gotIt: false });
+    closeModal("itemModal");
+    toast("Removed from list", "success");
+  };
   document.getElementById("btnHideItem").onclick = () => {
     updateItem(item.id, { hidden: true });
     closeModal("itemModal");
@@ -1494,6 +1503,18 @@ function openItemModal(itemId){
   };
   document.getElementById("btnCloseItemModal").onclick = () => closeModal("itemModal");
   openModal("itemModal");
+}
+function refreshStatusToggleButtons(){
+  const item = allItems.find(i => i.id === activeItemId);
+  if (!item) return;
+  const states = [
+    item.needed && !item.gotIt,
+    item.gotIt,
+    item.inPantry,
+    item.inGarageFridge,
+  ];
+  const buttons = document.querySelectorAll("#itemStatusToggles .toggle-btn");
+  buttons.forEach((b, i) => b.classList.toggle("active", !!states[i]));
 }
 function onStatusToggle(k){
   const item = allItems.find(i => i.id === activeItemId);
@@ -1503,6 +1524,10 @@ function onStatusToggle(k){
   else if (k === "gotit") patch = { gotIt: !item.gotIt };
   else if (k === "pantry") patch = { inPantry: !item.inPantry };
   else if (k === "garage") patch = { inGarageFridge: !item.inGarageFridge };
+  // Optimistic UI: update local state and modal buttons IMMEDIATELY
+  Object.assign(item, patch);
+  refreshStatusToggleButtons();
+  // Fire-and-forget Firestore write — snapshot listener reconciles when it lands
   updateItem(activeItemId, patch);
 }
 
@@ -1604,7 +1629,7 @@ async function confirmCompleteShop(){
   const cost = parseFloat(costStr) || 0;
   const got = allItems.filter(i => i.gotIt);
   const stillNeeded = allItems.filter(i => i.needed && !i.gotIt);
-  if (got.length === 0 && !confirm("No items marked Got It. Save anyway?")) return;
+  if (got.length === 0 && !confirm("No items marked Picked. Save anyway?")) return;
 
   const shopRecord = {
     store: completeStore,
