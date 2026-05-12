@@ -181,7 +181,33 @@
   }
   .tag-pantry{background:var(--green-lt); color:var(--green-dk)}
   .tag-garage{background:var(--blue-lt); color:var(--blue)}
+  .tag-freezer{background:#eef0f7; color:#475a8e}
+  .tag-user{background:var(--gold-lt); color:var(--gold)}
   .tag-recur{background:var(--gold-lt); color:var(--gold)}
+
+  .dest-list{
+    max-height:280px; overflow-y:auto; background:var(--bg);
+    border-radius:10px; padding:6px;
+  }
+  .dest-row{
+    display:flex; align-items:center; gap:8px; padding:8px 10px;
+    background:#fff; border-radius:8px; margin-bottom:4px;
+  }
+  .dest-row:last-child{margin-bottom:0}
+  .dest-name{
+    flex:1; font-size:13px; font-weight:500; min-width:0;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .dest-toggle{
+    display:flex; gap:2px; background:var(--bg);
+    border-radius:6px; padding:2px; flex-shrink:0;
+  }
+  .dest-opt{
+    padding:6px 9px; font-size:15px; font-weight:600;
+    background:transparent; color:var(--muted); border-radius:5px;
+    min-width:36px; line-height:1;
+  }
+  .dest-opt.active{background:#fff; color:var(--green); box-shadow:0 1px 2px rgba(0,0,0,.15)}
   .item-actions{
     width:32px; height:32px; flex-shrink:0; display:flex;
     align-items:center; justify-content:center; color:var(--muted);
@@ -357,7 +383,7 @@
           <div class="top-sub" id="topSub">Loading...</div>
         </div>
         <div class="top-actions">
-          <button class="icon-btn" id="btnGarage" title="Garage Fridge">🧊</button>
+          <button class="icon-btn" id="btnGarage" title="Garage">🧊</button>
           <button class="icon-btn" id="btnHistory" title="History">📋</button>
           <button class="icon-btn" id="btnCustomize" title="Customize">⚙️</button>
           <button class="icon-btn" id="btnLogout" title="Logout">🚪</button>
@@ -372,7 +398,6 @@
     <div class="view-tabs">
       <button class="view-tab active" data-filter="all">All Items</button>
       <button class="view-tab" data-filter="needed">Needed <span class="badge" id="cntNeeded">0</span></button>
-      <button class="view-tab" data-filter="pantry">Pantry <span class="badge" id="cntPantry">0</span></button>
     </div>
 
     <div class="search-bar">
@@ -393,7 +418,7 @@
   <div id="garageView" class="view">
     <div class="sub-header">
       <button class="back-btn" data-nav="main">←</button>
-      <div class="sub-header-title">🧊 Garage Fridge</div>
+      <div class="sub-header-title">🧊 Garage</div>
     </div>
     <div class="sections-container" id="garageContainer"></div>
   </div>
@@ -493,12 +518,8 @@
       <div id="completeSummary" style="font-size:13px;color:var(--muted);line-height:1.6"></div>
     </div>
     <div class="modal-section">
-      <div class="modal-label">Where do bought items go?</div>
-      <div class="toggle-row">
-        <button class="toggle-btn active" data-where="pantry">Pantry</button>
-        <button class="toggle-btn" data-where="garage">Garage Fridge</button>
-        <button class="toggle-btn" data-where="ask">Ask each</button>
-      </div>
+      <div class="modal-label">Where do these go?</div>
+      <div id="completeDestList" class="dest-list"></div>
     </div>
     <button class="modal-btn modal-btn-primary" id="btnConfirmComplete">Save Shop & Reset</button>
     <button class="modal-btn modal-btn-secondary" id="btnCancelComplete">Cancel</button>
@@ -531,10 +552,10 @@ const db = getFirestore(app);
 
 /* ─────────── USERS ─────────── */
 const USERS = {
-  jereme: { pin: "6420", display: "Jereme" },
-  wray:   { pin: "2249", display: "Wray" },
-  alex:   { pin: "4700", display: "Alex" },
-  scout:  { pin: "5643", display: "Scout" }
+  jereme: { pin: "6420", display: "Jereme", initials: "JB" },
+  wray:   { pin: "2249", display: "Wray",   initials: "WB" },
+  alex:   { pin: "4700", display: "Alex",   initials: "AB" },
+  scout:  { pin: "5643", display: "Scout",  initials: "SB" }
 };
 
 /* ─────────── SECTIONS ─────────── */
@@ -988,7 +1009,8 @@ async function enterApp(){
   setView("mainView");
   collapsedSections = lsGet(LS.collapsed) || {};
   currentStore = lsGet(LS.store) || "costco";
-  currentFilter = lsGet(LS.filter) || "all";
+  const savedFilter = lsGet(LS.filter);
+  currentFilter = (savedFilter === "needed") ? "needed" : "all";
   syncStoreTabs();
   syncViewTabs();
   await ensureSeeded();
@@ -1016,10 +1038,11 @@ async function ensureSeeded(){
         costcoSection, sobeysSection,
         atCostco: true,
         atSobeys: true,
-        inPantry: false,
         inGarageFridge: false,
+        inFreezer: false,
         needed: false,
         gotIt: false,
+        markedNeededBy: null,
         hidden: false,
         isCustom: false,
         createdBy: currentUser.key,
@@ -1129,9 +1152,6 @@ function filterItems(items){
     if (currentFilter === "needed"){
       return i.needed || i.gotIt;
     }
-    if (currentFilter === "pantry"){
-      return i.inPantry;
-    }
     return true;
   });
 }
@@ -1217,23 +1237,34 @@ function buildItemRow(item){
     nt.textContent = item.notes;
     content.appendChild(nt);
   }
-  if (item.inPantry || item.inGarageFridge){
-    const tags = document.createElement("div");
-    tags.className = "item-tags";
-    if (item.inPantry){
-      const t = document.createElement("span");
-      t.className = "tag tag-pantry";
-      t.textContent = "In Pantry";
-      tags.appendChild(t);
-    }
-    if (item.inGarageFridge){
-      const t = document.createElement("span");
-      t.className = "tag tag-garage";
-      t.textContent = "Garage Fridge";
-      tags.appendChild(t);
-    }
-    content.appendChild(tags);
+  const tagsDiv = document.createElement("div");
+  tagsDiv.className = "item-tags";
+  let hasTags = false;
+  if (item.inGarageFridge){
+    const t = document.createElement("span");
+    t.className = "tag tag-garage";
+    t.textContent = "Garage Fridge";
+    tagsDiv.appendChild(t);
+    hasTags = true;
   }
+  if (item.inFreezer){
+    const t = document.createElement("span");
+    t.className = "tag tag-freezer";
+    t.textContent = "Freezer";
+    tagsDiv.appendChild(t);
+    hasTags = true;
+  }
+  if ((item.needed || item.gotIt) && item.markedNeededBy){
+    const initials = userInitials(item.markedNeededBy);
+    if (initials){
+      const t = document.createElement("span");
+      t.className = "tag tag-user";
+      t.textContent = initials;
+      tagsDiv.appendChild(t);
+      hasTags = true;
+    }
+  }
+  if (hasTags) content.appendChild(tagsDiv);
 
   const action = document.createElement("button");
   action.className = "item-actions";
@@ -1254,8 +1285,8 @@ function buildItemRow(item){
     rm.addEventListener("click", (e) => {
       e.stopPropagation();
       // Optimistic: clear flags locally, fire-and-forget Firestore
-      Object.assign(item, { needed: false, gotIt: false });
-      updateItem(item.id, { needed: false, gotIt: false });
+      Object.assign(item, { needed: false, gotIt: false, markedNeededBy: null });
+      updateItem(item.id, { needed: false, gotIt: false, markedNeededBy: null });
       toast("Removed from list", "success");
     });
     row.appendChild(rm);
@@ -1265,21 +1296,32 @@ function buildItemRow(item){
 }
 
 async function toggleItemNeeded(item){
+  let patch;
   if (item.gotIt){
-    await updateItem(item.id, { gotIt: false, needed: true });
+    // picked → back to needed (keep existing markedNeededBy if present)
+    patch = { gotIt: false, needed: true };
+    if (!item.markedNeededBy) patch.markedNeededBy = currentUser.key;
   } else if (item.needed){
-    await updateItem(item.id, { gotIt: true });
+    // needed → picked (keep markedNeededBy so shopper sees who needed it)
+    patch = { gotIt: true };
   } else {
-    await updateItem(item.id, { needed: true, gotIt: false });
+    // off → needed (set current user as the one who needs it)
+    patch = { needed: true, gotIt: false, markedNeededBy: currentUser.key };
+  }
+  await updateItem(item.id, patch);
+  // After acting on a search result, clear the search so the next look isn't filtered.
+  if (searchTerm){
+    searchTerm = "";
+    const si = document.getElementById("searchInput");
+    if (si) si.value = "";
+    renderActive();
   }
 }
 
 function updateBadges(){
   const eligible = allItems.filter(i => !i.hidden);
   const needed = eligible.filter(i => i.needed && !i.gotIt && (currentStore === "costco" ? i.atCostco : i.atSobeys)).length;
-  const pantry = eligible.filter(i => i.inPantry).length;
   document.getElementById("cntNeeded").textContent = needed;
-  document.getElementById("cntPantry").textContent = pantry;
 }
 
 function renderActive(){
@@ -1291,50 +1333,69 @@ function renderActive(){
   if (active.id === "historyView") renderHistory();
 }
 
-/* ─────────── GARAGE FRIDGE VIEW ─────────── */
+/* ─────────── GARAGE VIEW (Fridge + Freezer) ─────────── */
 function renderGarage(){
   const c = document.getElementById("garageContainer");
   c.innerHTML = "";
-  const items = allItems.filter(i => !i.hidden && i.inGarageFridge);
-  if (items.length === 0){
+  const fridgeItems  = allItems.filter(i => !i.hidden && i.inGarageFridge);
+  const freezerItems = allItems.filter(i => !i.hidden && i.inFreezer);
+  if (fridgeItems.length === 0 && freezerItems.length === 0){
     c.innerHTML = `
       <div class="empty">
         <div class="empty-emoji">🧊</div>
-        <div class="empty-title">Garage fridge is empty</div>
-        <div class="empty-sub">Mark items as "in garage fridge" via the ⋯ menu after a Costco shop</div>
+        <div class="empty-title">Nothing in the garage</div>
+        <div class="empty-sub">Tag items as Garage Fridge or Freezer when completing a shop</div>
       </div>`;
     return;
   }
-  items.sort((a,b) => a.name.localeCompare(b.name));
+  c.appendChild(buildGarageSection("🧊 Garage Fridge", fridgeItems, "fridge"));
+  c.appendChild(buildGarageSection("❄️ Freezer", freezerItems, "freezer"));
+}
+
+function buildGarageSection(title, items, kind){
   const sec = document.createElement("div");
   sec.className = "section";
-  sec.innerHTML = `<div class="section-header" style="border-left-color:var(--blue);background:var(--blue-lt)">
-    <div class="section-title" style="color:var(--blue)">🧊 In Garage Fridge</div>
-    <div class="section-meta"><div class="section-count">${items.length} items</div></div>
+  const headColor = kind === "fridge" ? "var(--blue)" : "#475a8e";
+  const headBg    = kind === "fridge" ? "var(--blue-lt)" : "#eef0f7";
+  const headerHtml = `<div class="section-header" style="border-left-color:${headColor};background:${headBg}">
+    <div class="section-title" style="color:${headColor}">${title}</div>
+    <div class="section-meta"><div class="section-count">${items.length} item${items.length === 1 ? "" : "s"}</div></div>
   </div>`;
+  sec.innerHTML = headerHtml;
   const body = document.createElement("div");
   body.className = "section-body";
-  items.forEach(item => {
-    const row = document.createElement("div");
-    row.className = "item";
-    row.innerHTML = `
-      <div class="item-content">
-        <div class="item-name">${escapeHtml(item.name)}</div>
-        ${item.notes ? `<div class="item-notes">${escapeHtml(item.notes)}</div>` : ""}
-      </div>`;
-    const moveBtn = document.createElement("button");
-    moveBtn.className = "item-actions";
-    moveBtn.textContent = "→";
-    moveBtn.title = "Move to pantry";
-    moveBtn.addEventListener("click", async () => {
-      await updateItem(item.id, { inGarageFridge: false, inPantry: true });
-      toast("Moved to pantry", "success");
+  if (items.length === 0){
+    const empty = document.createElement("div");
+    empty.style.cssText = "padding:16px;text-align:center;color:var(--muted);font-size:13px";
+    empty.textContent = "Empty";
+    body.appendChild(empty);
+  } else {
+    items.sort((a,b) => a.name.localeCompare(b.name));
+    items.forEach(item => {
+      const row = document.createElement("div");
+      row.className = "item";
+      row.innerHTML = `
+        <div class="item-content">
+          <div class="item-name">${escapeHtml(item.name)}</div>
+          ${item.notes ? `<div class="item-notes">${escapeHtml(item.notes)}</div>` : ""}
+        </div>`;
+      const moveBtn = document.createElement("button");
+      moveBtn.className = "item-actions";
+      moveBtn.textContent = "→";
+      moveBtn.title = "Move to house";
+      moveBtn.addEventListener("click", async () => {
+        const patch = (kind === "fridge")
+          ? { inGarageFridge: false }
+          : { inFreezer: false };
+        await updateItem(item.id, patch);
+        toast("Moved to house", "success");
+      });
+      row.appendChild(moveBtn);
+      body.appendChild(row);
     });
-    row.appendChild(moveBtn);
-    body.appendChild(row);
-  });
+  }
   sec.appendChild(body);
-  c.appendChild(sec);
+  return sec;
 }
 
 /* ─────────── CUSTOMIZE VIEW ─────────── */
@@ -1488,8 +1549,8 @@ function openItemModal(itemId){
   [
     ["needed",        "Needed",       item.needed && !item.gotIt],
     ["gotit",         "Picked",       item.gotIt],
-    ["pantry",        "In Pantry",    item.inPantry],
     ["garage",        "Garage Fridge",item.inGarageFridge],
+    ["freezer",       "Freezer",      item.inFreezer],
   ].forEach(([k, label, active]) => {
     const b = document.createElement("button");
     b.className = "toggle-btn" + (active ? " active" : "");
@@ -1512,8 +1573,8 @@ function openItemModal(itemId){
   document.getElementById("btnNotNeeded").onclick = () => {
     // Optimistic UI: clear flags locally, fire-and-forget Firestore
     const cur = allItems.find(i => i.id === activeItemId);
-    if (cur) Object.assign(cur, { needed: false, gotIt: false });
-    updateItem(activeItemId, { needed: false, gotIt: false });
+    if (cur) Object.assign(cur, { needed: false, gotIt: false, markedNeededBy: null });
+    updateItem(activeItemId, { needed: false, gotIt: false, markedNeededBy: null });
     closeModal("itemModal");
     toast("Removed from list", "success");
   };
@@ -1531,8 +1592,8 @@ function refreshStatusToggleButtons(){
   const states = [
     item.needed && !item.gotIt,
     item.gotIt,
-    item.inPantry,
     item.inGarageFridge,
+    item.inFreezer,
   ];
   const buttons = document.querySelectorAll("#itemStatusToggles .toggle-btn");
   buttons.forEach((b, i) => b.classList.toggle("active", !!states[i]));
@@ -1541,10 +1602,20 @@ function onStatusToggle(k){
   const item = allItems.find(i => i.id === activeItemId);
   if (!item) return;
   let patch = {};
-  if (k === "needed") patch = { needed: !item.needed || item.gotIt, gotIt: false };
-  else if (k === "gotit") patch = { gotIt: !item.gotIt };
-  else if (k === "pantry") patch = { inPantry: !item.inPantry };
-  else if (k === "garage") patch = { inGarageFridge: !item.inGarageFridge };
+  if (k === "needed"){
+    const newNeeded = !item.needed || item.gotIt;
+    patch = { needed: newNeeded, gotIt: false };
+    if (newNeeded && !item.markedNeededBy){
+      patch.markedNeededBy = currentUser.key;
+    } else if (!newNeeded){
+      patch.markedNeededBy = null;
+    }
+  }
+  else if (k === "gotit"){
+    patch = { gotIt: !item.gotIt };
+  }
+  else if (k === "garage")  patch = { inGarageFridge: !item.inGarageFridge };
+  else if (k === "freezer") patch = { inFreezer: !item.inFreezer };
   // Optimistic UI: update local state and modal buttons IMMEDIATELY
   Object.assign(item, patch);
   refreshStatusToggleButtons();
@@ -1606,8 +1677,9 @@ async function saveAddItem(){
       name, notes,
       costcoSection: cSec, sobeysSection: sSec,
       atCostco: true, atSobeys: true,
-      inPantry: false, inGarageFridge: false,
+      inGarageFridge: false, inFreezer: false,
       needed: true,
+      markedNeededBy: currentUser.key,
     });
   }
   closeModal("addModal");
@@ -1616,10 +1688,11 @@ async function saveAddItem(){
 
 /* ─────────── COMPLETE SHOP ─────────── */
 let completeStore = "costco";
-let completeWhere = "pantry";
+let completeDestinations = {};   // itemId → 'house' | 'garage' | 'freezer'
+
 function openCompleteModal(){
   completeStore = currentStore;
-  completeWhere = "pantry";
+  completeDestinations = {};
   document.querySelectorAll("[data-cstore]").forEach(b => {
     b.classList.toggle("active", b.dataset.cstore === completeStore);
     b.onclick = () => {
@@ -1628,17 +1701,54 @@ function openCompleteModal(){
       refreshCompleteSummary();
     };
   });
-  document.querySelectorAll("[data-where]").forEach(b => {
-    b.classList.toggle("active", b.dataset.where === completeWhere);
-    b.onclick = () => {
-      completeWhere = b.dataset.where;
-      document.querySelectorAll("[data-where]").forEach(x => x.classList.toggle("active", x.dataset.where === completeWhere));
-    };
-  });
   document.getElementById("completeCost").value = "";
   refreshCompleteSummary();
+  renderCompleteDestList();
   openModal("completeModal");
 }
+
+function renderCompleteDestList(){
+  const c = document.getElementById("completeDestList");
+  c.innerHTML = "";
+  const got = allItems.filter(i => i.gotIt);
+  if (got.length === 0){
+    c.innerHTML = `<div style="padding:14px;text-align:center;color:var(--muted);font-size:13px">No items marked Picked yet.</div>`;
+    return;
+  }
+  got.sort((a,b) => a.name.localeCompare(b.name));
+  got.forEach(item => {
+    if (!(item.id in completeDestinations)) completeDestinations[item.id] = "house";
+    const row = document.createElement("div");
+    row.className = "dest-row";
+    const nameEl = document.createElement("div");
+    nameEl.className = "dest-name";
+    nameEl.textContent = item.name;
+    row.appendChild(nameEl);
+    const toggle = document.createElement("div");
+    toggle.className = "dest-toggle";
+    [
+      ["house",   "🏠", "In house"],
+      ["garage",  "🧊", "Garage fridge"],
+      ["freezer", "❄️", "Freezer"],
+    ].forEach(([key, icon, hint]) => {
+      const b = document.createElement("button");
+      b.className = "dest-opt" + (completeDestinations[item.id] === key ? " active" : "");
+      b.textContent = icon;
+      b.title = hint;
+      b.dataset.destKey = key;
+      b.addEventListener("click", () => {
+        completeDestinations[item.id] = key;
+        toggle.querySelectorAll(".dest-opt").forEach(x => {
+          x.classList.toggle("active", x.dataset.destKey === key);
+        });
+      });
+      toggle.appendChild(b);
+    });
+    row.appendChild(toggle);
+    c.appendChild(row);
+  });
+}
+
 function refreshCompleteSummary(){
   const got = allItems.filter(i => i.gotIt).length;
   const stillNeeded = allItems.filter(i => i.needed && !i.gotIt).length;
@@ -1671,14 +1781,25 @@ async function confirmCompleteShop(){
     return;
   }
 
-  // Reset Got It flags, decide pantry/garage placement
+  // Reset Got It flags, apply per-item destination
   const batch = writeBatch(db);
   got.forEach(item => {
-    let patch = { gotIt: false, needed: false, updatedAt: serverTimestamp(), updatedBy: currentUser.key };
-    if (completeWhere === "pantry") patch.inPantry = true;
-    else if (completeWhere === "garage") patch.inGarageFridge = true;
-    // If "ask" — default to pantry, user can move via Garage view
-    else patch.inPantry = true;
+    const dest = completeDestinations[item.id] || "house";
+    const patch = {
+      gotIt: false, needed: false, markedNeededBy: null,
+      updatedAt: serverTimestamp(), updatedBy: currentUser.key,
+    };
+    if (dest === "garage"){
+      patch.inGarageFridge = true;
+      patch.inFreezer = false;
+    } else if (dest === "freezer"){
+      patch.inFreezer = true;
+      patch.inGarageFridge = false;
+    } else {
+      // "house" — no location flag, clear any old ones
+      patch.inGarageFridge = false;
+      patch.inFreezer = false;
+    }
     batch.update(doc(db, "gr_items", item.id), patch);
   });
   try {
@@ -1766,6 +1887,9 @@ function wireEvents(){
 function escapeHtml(s){
   return String(s || "").replace(/[&<>"']/g, c =>
     ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+}
+function userInitials(key){
+  return (USERS[key] && USERS[key].initials) || "";
 }
 
 /* ─────────── BOOT ─────────── */
